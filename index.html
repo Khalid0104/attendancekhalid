@@ -373,6 +373,9 @@
 
         .password-modal.hidden {
             display: none !important;
+            opacity: 0 !important;
+            visibility: hidden !important;
+            pointer-events: none !important;
         }
 
         .password-modal-content {
@@ -1212,6 +1215,8 @@
         }
 
         function changePassword() {
+            console.log('🔐 Changing password...');
+            
             const currentInput = document.getElementById('currentPassword');
             const newInput = document.getElementById('newPassword');
             const confirmInput = document.getElementById('confirmPassword');
@@ -1243,11 +1248,54 @@
             // Update password
             teacherPassword = newPass;
             localStorage.setItem('teachingApp_password', newPass);
+            console.log('✅ Password updated successfully');
             
-            closePasswordModal();
+            // FORCE CLOSE MODAL - Multiple methods
+            const modal = document.getElementById('passwordModal');
+            if (modal) {
+                // Method 1: Add hidden class
+                modal.classList.add('hidden');
+                
+                // Method 2: Force hide with inline styles
+                modal.style.display = 'none';
+                modal.style.visibility = 'hidden';
+                modal.style.opacity = '0';
+                modal.style.pointerEvents = 'none';
+                
+                // Method 3: Remove from DOM temporarily
+                const parent = modal.parentNode;
+                parent.removeChild(modal);
+                
+                console.log('🚪 Modal forcefully closed');
+                
+                // Clear form
+                const inputs = ['currentPassword', 'newPassword', 'confirmPassword'];
+                inputs.forEach(id => {
+                    const input = document.getElementById(id);
+                    if (input) {
+                        input.value = '';
+                        input.type = 'password';
+                    }
+                });
+                
+                // Re-add modal to DOM
+                setTimeout(() => {
+                    parent.appendChild(modal);
+                    // Reset modal styles
+                    modal.style.display = '';
+                    modal.style.visibility = '';
+                    modal.style.opacity = '';
+                    modal.style.pointerEvents = '';
+                    console.log('🔄 Modal re-added to DOM');
+                }, 100);
+                
+                console.log('🧹 Form cleared');
+            }
+            
+            // Show success message
             setTimeout(() => {
                 alert('Password updated successfully! 🔐\n\nYour new password is: ' + newPass);
-            }, 100);
+            }, 200);
         }
 
         function updateCurrentDate() {
