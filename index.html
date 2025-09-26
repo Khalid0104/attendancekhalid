@@ -1059,177 +1059,474 @@
         let isAssignmentScanning = false;
         let currentCalendarDate = new Date();
         let selectedCalendarDate = null;
-        let teacherPassword = 'teacher123'; // Default password
+        let teacherPassword = 'teacher123';
 
-        // Initialize the app
-        document.addEventListener('DOMContentLoaded', function() {
-            updateCurrentDate();
-            generateCalendar();
-            loadStoredPassword();
-            
-            // Add enter key support for login
-            document.getElementById('passwordInput').addEventListener('keypress', function(e) {
-                if (e.key === 'Enter') {
-                    signInWithPassword();
-                }
-            });
-        });
-
-        // Load stored password from localStorage
-        function loadStoredPassword() {
-            const stored = localStorage.getItem('teachingApp_password');
-            if (stored) {
-                teacherPassword = stored;
-            }
-        }
-
-        // Save password to localStorage
-        function savePassword(newPassword) {
-            localStorage.setItem('teachingApp_password', newPassword);
-            teacherPassword = newPassword;
-        }
-
-        // Simple password sign in
+        // Simple password sign in - MAIN LOGIN FUNCTION
         function signInWithPassword() {
-            console.log('Login attempt started'); // Debug log
+            console.log('🔑 Login function called');
             
-            const enteredName = document.getElementById('teacherNameInput').value.trim();
-            const enteredPassword = document.getElementById('passwordInput').value;
+            const nameInput = document.getElementById('teacherNameInput');
+            const passwordInput = document.getElementById('passwordInput');
             
-            console.log('Name:', enteredName, 'Password:', enteredPassword); // Debug log
+            if (!nameInput || !passwordInput) {
+                console.error('❌ Input fields not found');
+                alert('Error: Input fields not found. Please refresh the page.');
+                return;
+            }
+            
+            const enteredName = nameInput.value.trim();
+            const enteredPassword = passwordInput.value;
+            
+            console.log('📝 Name entered:', enteredName);
+            console.log('🔐 Password entered:', enteredPassword);
+            console.log('🔐 Expected password:', teacherPassword);
             
             if (!enteredName) {
-                showLoginError('Please enter your name!');
+                alert('Please enter your name!');
                 return;
             }
             
             if (enteredPassword !== teacherPassword) {
-                showLoginError('Incorrect password! Try: teacher123');
+                alert('Wrong password! Use: teacher123');
                 return;
             }
             
-            console.log('Login validation passed'); // Debug log
+            console.log('✅ Login validation passed');
             
-            // Successful login
+            // Set current user
             currentUser = {
                 name: enteredName,
-                email: enteredName.toLowerCase().replace(/\s+/g, '.') + '@teacher.local',
-                loginTime: new Date().toISOString()
+                email: enteredName.toLowerCase().replace(/\s+/g, '.') + '@teacher.local'
             };
             
-            console.log('Current user set:', currentUser); // Debug log
+            console.log('👤 User set:', currentUser);
             
-            try {
-                document.getElementById('loginScreen').style.display = 'none';
-                document.getElementById('mainApp').style.display = 'block';
-                document.getElementById('teacherName').textContent = currentUser.name;
-                
-                console.log('UI updated successfully'); // Debug log
-                
-                loadUserData();
-                
-                // Show welcome message after a short delay
-                setTimeout(() => {
-                    showMessage("Welcome, " + currentUser.name + "! 🎉", 'success');
-                }, 100);
-                
-                // Clear login form
-                document.getElementById('teacherNameInput').value = '';
-                document.getElementById('passwordInput').value = '';
-                
-                console.log('Login completed successfully'); // Debug log
-                
-            } catch (error) {
-                console.error('Error during login:', error);
-                showLoginError('Login error occurred. Please refresh and try again.');
-            }
-        }
-
-        function showLoginError(message) {
-            // Remove existing error messages
-            const existingError = document.querySelector('.login-error');
-            if (existingError) {
-                existingError.remove();
-            }
+            // Hide login screen and show main app
+            const loginScreen = document.getElementById('loginScreen');
+            const mainApp = document.getElementById('mainApp');
+            const teacherNameSpan = document.getElementById('teacherName');
             
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'login-error';
-            errorDiv.textContent = message;
-            errorDiv.style.cssText = `
-                background: linear-gradient(135deg, rgba(231, 76, 60, 0.1), rgba(192, 57, 43, 0.05));
-                color: #c0392b;
-                padding: 12px;
-                border-radius: 10px;
-                margin-top: 15px;
-                border: 1px solid rgba(231, 76, 60, 0.2);
-                font-weight: 600;
-                animation: shake 0.5s ease-in-out;
-            `;
+            if (loginScreen) loginScreen.style.display = 'none';
+            if (mainApp) mainApp.style.display = 'block';
+            if (teacherNameSpan) teacherNameSpan.textContent = currentUser.name;
             
-            document.querySelector('.login-form').appendChild(errorDiv);
+            console.log('🎉 UI updated - should be logged in now!');
             
-            // Add shake animation
-            const style = document.createElement('style');
-            style.textContent = `
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-5px); }
-                    75% { transform: translateX(5px); }
-                }
-            `;
-            document.head.appendChild(style);
+            // Load demo data
+            loadUserData();
             
-            setTimeout(() => {
-                errorDiv.remove();
-            }, 4000);
-        }
-
-        // Password settings functions
-        function showPasswordSettings() {
-            document.getElementById('passwordModal').classList.remove('hidden');
-        }
-
-        function closePasswordModal() {
-            document.getElementById('passwordModal').classList.add('hidden');
             // Clear form
-            document.getElementById('currentPassword').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
+            nameInput.value = '';
+            passwordInput.value = '';
+            
+            alert('Welcome ' + currentUser.name + '! 🎉');
         }
 
-        function changePassword() {
-            const current = document.getElementById('currentPassword').value;
-            const newPass = document.getElementById('newPassword').value;
-            const confirm = document.getElementById('confirmPassword').value;
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Page loaded, setting up...');
             
-            if (current !== teacherPassword) {
-                showMessage('Current password is incorrect!', 'error');
-                return;
+            // Make sure login function is available globally
+            window.signInWithPassword = signInWithPassword;
+            
+            // Add enter key support
+            const passwordInput = document.getElementById('passwordInput');
+            if (passwordInput) {
+                passwordInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        signInWithPassword();
+                    }
+                });
             }
             
-            if (newPass.length < 6) {
-                showMessage('New password must be at least 6 characters long!', 'error');
-                return;
+            updateCurrentDate();
+            console.log('✅ Setup complete');
+        });
+
+        // Load demo data
+        function loadUserData() {
+            console.log('📚 Loading user data...');
+            if (Object.keys(classes).length === 0) {
+                classes = {
+                    'class1': {
+                        name: 'Grade 10A Math',
+                        subject: 'Mathematics',
+                        students: [
+                            {id: 1, name: "Ahmed Al-Rashid", stars: 5, xMarks: 1},
+                            {id: 2, name: "Fatima Hassan", stars: 8, xMarks: 0},
+                            {id: 3, name: "Omar Khalil", stars: 3, xMarks: 2},
+                            {id: 4, name: "Aisha Mohammed", stars: 12, xMarks: 0}
+                        ],
+                        attendance: {},
+                        log: []
+                    },
+                    'class2': {
+                        name: 'Grade 10B Science',
+                        subject: 'Science',
+                        students: [
+                            {id: 1, name: "Sara Abdullah", stars: 7, xMarks: 0},
+                            {id: 2, name: "Mohammed Ali", stars: 4, xMarks: 3}
+                        ],
+                        attendance: {},
+                        log: []
+                    }
+                };
             }
-            
-            if (newPass !== confirm) {
-                showMessage('New passwords do not match!', 'error');
-                return;
+            updateClassSelect();
+        }
+
+        function updateClassSelect() {
+            const select = document.getElementById('classSelect');
+            if (select) {
+                select.innerHTML = '<option value="">Select a class...</option>';
+                Object.keys(classes).forEach(classId => {
+                    const option = document.createElement('option');
+                    option.value = classId;
+                    option.textContent = classes[classId].name;
+                    select.appendChild(option);
+                });
             }
-            
-            savePassword(newPass);
-            closePasswordModal();
-            showMessage('Password updated successfully! 🔐', 'success');
         }
 
         function signOut() {
             currentUser = null;
             currentClass = null;
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('mainApp').style.display = 'none';
-            document.getElementById('classContent').style.display = 'none';
-            showMessage('Logged out successfully! 👋', 'success');
+            const loginScreen = document.getElementById('loginScreen');
+            const mainApp = document.getElementById('mainApp');
+            const classContent = document.getElementById('classContent');
+            
+            if (loginScreen) loginScreen.style.display = 'flex';
+            if (mainApp) mainApp.style.display = 'none';
+            if (classContent) classContent.style.display = 'none';
+            
+            alert('Logged out successfully! 👋');
         }
+
+        function updateCurrentDate() {
+            const today = new Date();
+            const options = { 
+                year: 'numeric', 
+                month: 'long', 
+                day: 'numeric',
+                weekday: 'long'
+            };
+            const dateElement = document.getElementById('currentDate');
+            if (dateElement) {
+                dateElement.textContent = today.toLocaleDateString('en-US', options);
+            }
+        }
+
+        function switchClass() {
+            const classId = document.getElementById('classSelect').value;
+            if (!classId) {
+                document.getElementById('classContent').style.display = 'none';
+                return;
+            }
+
+            currentClass = classId;
+            students = classes[classId].students;
+            attendanceLog = classes[classId].log;
+            todaysAttendance = classes[classId].attendance[new Date().toDateString()] || {};
+            
+            document.getElementById('classContent').style.display = 'block';
+            document.getElementById('addClassForm').classList.add('hidden');
+
+            updateStats();
+            renderStudentsTable();
+            renderTodaysAttendance();
+            renderAttendanceLog();
+            renderAssignmentTable();
+        }
+
+        function updateStats() {
+            if (!currentClass) return;
+            
+            const totalStudents = students.length;
+            const presentToday = Object.keys(todaysAttendance).length;
+            const totalStars = students.reduce((sum, student) => sum + (student.stars || 0), 0);
+            const totalXMarks = students.reduce((sum, student) => sum + (student.xMarks || 0), 0);
+
+            const totalStudentsEl = document.getElementById('totalStudents');
+            const presentTodayEl = document.getElementById('presentToday');
+            const totalStarsEl = document.getElementById('totalStars');
+            const totalXMarksEl = document.getElementById('totalXMarks');
+
+            if (totalStudentsEl) totalStudentsEl.textContent = totalStudents;
+            if (presentTodayEl) presentTodayEl.textContent = presentToday;
+            if (totalStarsEl) totalStarsEl.textContent = totalStars;
+            if (totalXMarksEl) totalXMarksEl.textContent = totalXMarks;
+        }
+
+        function renderStudentsTable() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('studentsTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = students.map(student => `
+                <tr>
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td><span class="stars">${'⭐'.repeat(student.stars || 0)} (${student.stars || 0})</span></td>
+                    <td><span style="color: #e74c3c; font-weight: bold;">${'❌'.repeat(student.xMarks || 0)} (${student.xMarks || 0})</span></td>
+                    <td>
+                        <button class="present-btn" onclick="markAttendance(students.find(s => s.id === ${student.id}), 'Manual')"
+                                ${todaysAttendance[student.id] ? 'disabled' : ''}>
+                            ${todaysAttendance[student.id] ? 'Present ✓' : 'Present'}
+                        </button>
+                        <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐</button>
+                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTodaysAttendance() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('attendanceTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = students.map(student => {
+                const attendance = todaysAttendance[student.id];
+                const status = attendance ? 'Present ✅' : 'Absent ❌';
+                const time = attendance ? attendance.time : '-';
+                
+                return `
+                    <tr style="${attendance ? 'background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(69, 160, 73, 0.05));' : ''}">
+                        <td>${student.id}</td>
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="present-btn" onclick="markAttendance(students.find(s => s.id === ${student.id}), 'Manual')"
+                                    ${attendance ? 'disabled' : ''}>
+                                ${attendance ? 'Present ✓' : 'Mark Present'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderAttendanceLog() {
+            const tbody = document.getElementById('logTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = attendanceLog.slice(0, 50).map(entry => `
+                <tr>
+                    <td>${entry.date}</td>
+                    <td>${entry.time}</td>
+                    <td>${entry.student}</td>
+                    <td><span style="padding: 4px 8px; background: #e8f5e8; border-radius: 12px; font-size: 0.9rem;">${entry.type}</span></td>
+                    <td><span style="padding: 4px 8px; background: #fff3e0; border-radius: 12px; font-size: 0.9rem;">${entry.method}</span></td>
+                    <td>${entry.details || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function renderAssignmentTable() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('assignmentTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = students.map(student => {
+                const isScanned = currentAssignmentData && currentAssignmentData.scannedStudents.has(student.id);
+                const status = isScanned ? 'Completed ✅' : 'Pending ⏳';
+                
+                return `
+                    <tr style="${isScanned ? 'background: linear-gradient(135deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.05));' : ''}">
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${isScanned ? new Date().toLocaleTimeString() : '-'}</td>
+                        <td>
+                            <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐</button>
+                            <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function markAttendance(student, method = 'Manual') {
+            if (!student) return;
+            
+            const today = new Date().toDateString();
+            const time = new Date().toLocaleTimeString();
+
+            if (todaysAttendance[student.id]) {
+                alert(student.name + ' is already marked present today!');
+                return;
+            }
+
+            todaysAttendance[student.id] = {
+                time: time,
+                method: method
+            };
+
+            // Save to class data
+            if (!classes[currentClass].attendance[today]) {
+                classes[currentClass].attendance[today] = {};
+            }
+            classes[currentClass].attendance[today] = todaysAttendance;
+
+            // Add attendance star
+            student.stars = (student.stars || 0) + 1;
+
+            addToLog(student.name, 'Attendance', method, 'Present (+1 star)');
+
+            alert('✅ ' + student.name + ' marked present! (+1 star)');
+            updateStats();
+            renderStudentsTable();
+            renderTodaysAttendance();
+            renderAttendanceLog();
+        }
+
+        function addManualStar(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                student.stars = (student.stars || 0) + 1;
+                addToLog(student.name, 'Manual', 'Teacher', 'Manual star added (+1 star)');
+                alert('⭐ Added star to ' + student.name + '!');
+                updateStats();
+                renderStudentsTable();
+                renderAssignmentTable();
+            }
+        }
+
+        function addManualX(studentId) {
+            const student = students.find(s => s.id === studentId);
+            if (student) {
+                student.xMarks = (student.xMarks || 0) + 1;
+                addToLog(student.name, 'Manual', 'Teacher', 'Manual X mark added (+1 ❌)');
+                alert('❌ Added X mark to ' + student.name + '!');
+                updateStats();
+                renderStudentsTable();
+                renderAssignmentTable();
+            }
+        }
+
+        function addToLog(studentName, type, method, details) {
+            const logEntry = {
+                date: new Date().toDateString(),
+                time: new Date().toLocaleTimeString(),
+                student: studentName,
+                type: type,
+                method: method,
+                details: details
+            };
+
+            attendanceLog.unshift(logEntry);
+            if (currentClass) {
+                classes[currentClass].log = attendanceLog;
+            }
+        }
+
+        function showAddClassForm() {
+            document.getElementById('addClassForm').classList.remove('hidden');
+            document.getElementById('classContent').style.display = 'none';
+        }
+
+        function addClass() {
+            const name = document.getElementById('className').value.trim();
+            const subject = document.getElementById('classSubject').value.trim();
+
+            if (!name) {
+                alert('Please enter a class name!');
+                return;
+            }
+
+            const classId = 'class' + (Object.keys(classes).length + 1);
+            classes[classId] = {
+                name: name,
+                subject: subject,
+                students: [],
+                attendance: {},
+                log: []
+            };
+
+            document.getElementById('className').value = '';
+            document.getElementById('classSubject').value = '';
+            document.getElementById('addClassForm').classList.add('hidden');
+
+            updateClassSelect();
+            alert('Class "' + name + '" created successfully! 🎉');
+        }
+
+        function addStudent() {
+            const name = document.getElementById('studentName').value.trim();
+            const customId = document.getElementById('studentId').value.trim();
+
+            if (!name) {
+                alert('Please enter student name!');
+                return;
+            }
+
+            const id = customId || (students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1);
+
+            if (students.some(s => s.id.toString() === id.toString())) {
+                alert('Student ID already exists!');
+                return;
+            }
+
+            const newStudent = {
+                id: parseInt(id),
+                name: name,
+                stars: 0,
+                xMarks: 0
+            };
+
+            students.push(newStudent);
+            
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentId').value = '';
+
+            alert('Student ' + name + ' added successfully!');
+            updateStats();
+            renderStudentsTable();
+            renderTodaysAttendance();
+            renderAssignmentTable();
+        }
+
+        function switchTab(tabName) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => tab.classList.add('hidden'));
+
+            const tabButtons = document.querySelectorAll('.tab');
+            tabButtons.forEach(tab => tab.classList.remove('active'));
+
+            const targetTab = document.getElementById(tabName + 'Tab');
+            if (targetTab) {
+                targetTab.classList.remove('hidden');
+            }
+            
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+
+            if (tabName !== 'scanner' && isScanning) {
+                // stopScanner();
+            }
+            if (tabName !== 'assignments' && isAssignmentScanning) {
+                // stopAssignmentScanner();
+            }
+        }
+
+        // Make functions globally available
+        window.signInWithPassword = signInWithPassword;
+        window.signOut = signOut;
+        window.switchClass = switchClass;
+        window.showAddClassForm = showAddClassForm;
+        window.addClass = addClass;
+        window.addStudent = addStudent;
+        window.switchTab = switchTab;
+        window.markAttendance = markAttendance;
+        window.addManualStar = addManualStar;
+        window.addManualX = addManualX;
+
+        console.log('🎉 All functions loaded and ready!');
+    </script>
 
         // Class Management
         function loadUserData() {
