@@ -1091,8 +1091,12 @@
 
         // Simple password sign in
         function signInWithPassword() {
+            console.log('Login attempt started'); // Debug log
+            
             const enteredName = document.getElementById('teacherNameInput').value.trim();
             const enteredPassword = document.getElementById('passwordInput').value;
+            
+            console.log('Name:', enteredName, 'Password:', enteredPassword); // Debug log
             
             if (!enteredName) {
                 showLoginError('Please enter your name!');
@@ -1104,6 +1108,8 @@
                 return;
             }
             
+            console.log('Login validation passed'); // Debug log
+            
             // Successful login
             currentUser = {
                 name: enteredName,
@@ -1111,16 +1117,32 @@
                 loginTime: new Date().toISOString()
             };
             
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('mainApp').style.display = 'block';
-            document.getElementById('teacherName').textContent = currentUser.name;
+            console.log('Current user set:', currentUser); // Debug log
             
-            loadUserData();
-            showMessage("Welcome, " + currentUser.name + "! 🎉", 'success');
-            
-            // Clear login form
-            document.getElementById('teacherNameInput').value = '';
-            document.getElementById('passwordInput').value = '';
+            try {
+                document.getElementById('loginScreen').style.display = 'none';
+                document.getElementById('mainApp').style.display = 'block';
+                document.getElementById('teacherName').textContent = currentUser.name;
+                
+                console.log('UI updated successfully'); // Debug log
+                
+                loadUserData();
+                
+                // Show welcome message after a short delay
+                setTimeout(() => {
+                    showMessage("Welcome, " + currentUser.name + "! 🎉", 'success');
+                }, 100);
+                
+                // Clear login form
+                document.getElementById('teacherNameInput').value = '';
+                document.getElementById('passwordInput').value = '';
+                
+                console.log('Login completed successfully'); // Debug log
+                
+            } catch (error) {
+                console.error('Error during login:', error);
+                showLoginError('Login error occurred. Please refresh and try again.');
+            }
         }
 
         function showLoginError(message) {
