@@ -776,7 +776,8 @@
         let students = [];
         let attendanceLog = [];
         let todaysAttendance = {};
-        let teacherPassword = 'teacher123';
+        let html5QrcodeScanner = null;
+        let isScanning = false;
 
         // Simple password sign in
         function signInWithPassword() {
@@ -1177,6 +1178,11 @@
                     tab.classList.add('active');
                 }
             });
+
+            // Stop scanner if switching away from scanner tab
+            if (tabName !== 'scanner' && isScanning) {
+                stopScanner();
+            }
         }
 
         function signOut() {
@@ -1313,7 +1319,151 @@
         }
 
         function startScanner() {
-            alert('📱 QR Scanner feature coming soon!\n\nFor now, you can:\n• Add students manually\n• Mark attendance with the "Present" buttons\n• Add stars and X marks manually');
+            console.log('📱 Starting QR Scanner...');
+            
+            if (isScanning) {
+                stopScanner();
+                return;
+            }
+
+            // Check if we have students in the current class
+            if (!currentClass || !students.length) {
+                alert('❌ Please select a class and add students first!');
+                return;
+            }
+
+            const scanButton = document.getElementById('scanButton');
+            const reader = document.getElementById('reader');
+            
+            html5QrcodeScanner = new Html5Qrcode("reader");
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            // Start camera
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, // Use back camera
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).then(() => {
+                isScanning = true;
+                scanButton.textContent = '🛑 Stop Scanner';
+                scanButton.style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                console.log('✅ QR Scanner started successfully');
+                
+                // Show instructions
+                const scanResult = document.getElementById('scanResult');
+                scanResult.innerHTML = `
+                    <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                        <p style="color: #11998e; font-weight: 600; text-align: center;">
+                            📱 <strong>Scanner Active!</strong><br>
+                            <small>Point camera at student QR code containing their ID or name</small>
+                        </p>
+                    </div>
+                `;
+            }).catch(err => {
+                console.error('❌ Scanner failed to start:', err);
+                alert(`Scanner failed to start: ${err}\n\nMake sure to allow camera access!`);
+            });
+        }
+
+        function stopScanner() {
+            console.log('🛑 Stopping QR Scanner...');
+            
+            if (html5QrcodeScanner && isScanning) {
+                html5QrcodeScanner.stop().then(() => {
+                    html5QrcodeScanner.clear();
+                    isScanning = false;
+                    
+                    const scanButton = document.getElementById('scanButton');
+                    scanButton.textContent = '📱 Start QR Scanner';
+                    scanButton.style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
+                    
+                    // Clear results
+                    const scanResult = document.getElementById('scanResult');
+                    scanResult.innerHTML = '';
+                    
+                    console.log('✅ QR Scanner stopped successfully');
+                }).catch(err => {
+                    console.error('❌ Error stopping scanner:', err);
+                });
+            }
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            console.log('🎯 QR Code scanned:', decodedText);
+            
+            // Look for student by ID or name
+            const student = students.find(s => 
+                s.id.toString() === decodedText.trim() || 
+                s.name.toLowerCase() === decodedText.trim().toLowerCase()
+            );
+
+            if (student) {
+                console.log('✅ Student found:', student.name);
+                
+                // Show scan result
+                const scanResult = document.getElementById('scanResult');
+                scanResult.innerHTML = `
+                    <div style="background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #4CAF50;">
+                        <p style="color: #4CAF50; font-weight: 600; text-align: center;">
+                            ✅ <strong>Student Found!</strong><br>
+                            📝 ${student.name} (ID: ${student.id})<br>
+                            <small>Marking attendance...</small>
+                        </p>
+                    </div>
+                `;
+                
+                // Mark attendance after a short delay to show the result
+                setTimeout(() => {
+                    markAttendance(student.id, 'QR Scan');
+                    stopScanner();
+                }, 1000);
+                
+            } else {
+                console.log('❌ Student not found for:', decodedText);
+                
+                // Show not found result
+                const scanResult = document.getElementById('scanResult');
+                scanResult.innerHTML = `
+                    <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #ff9800;">
+                        <p style="color: #ff9800; font-weight: 600; text-align: center;">
+                            ⚠️ <strong>Student Not Found!</strong><br>
+                            📱 Scanned: "${decodedText}"<br>
+                            <small>Make sure the QR code contains the student's ID or exact name</small>
+                        </p>
+                        <div style="margin-top: 10px; font-size: 0.9rem; color: #666;">
+                            <strong>Available students:</strong><br>
+                            ${students.map(s => `• ${s.name} (ID: ${s.id})`).join('<br>')}
+                        </div>
+                    </div>
+                `;
+                
+                // Clear message after 4 seconds and continue scanning
+                setTimeout(() => {
+                    const scanResult = document.getElementById('scanResult');
+                    scanResult.innerHTML = `
+                        <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                            <p style="color: #11998e; font-weight: 600; text-align: center;">
+                                📱 <strong>Scanner Active!</strong><br>
+                                <small>Point camera at student QR code</small>
+                            </p>
+                        </div>
+                    `;
+                }, 4000);
+            }
+        }
+
+        function onScanFailure(error) {
+            // Ignore scan failures - they happen constantly while scanning
+            // Only log actual errors, not "No QR code found" messages
+            if (!error.toString().includes('No QR code found')) {
+                console.log('🔍 Scan error (normal):', error);
+            }
         }
 
         // Initialize when page loads
@@ -1332,6 +1482,17 @@
                 passwordInput.addEventListener('keypress', function(e) {
                     if (e.key === 'Enter') {
                         signInWithPassword();
+                    }
+                });
+            }
+            
+            // Add click outside modal to close
+            const modal = document.getElementById('passwordModal');
+            if (modal) {
+                modal.addEventListener('click', function(e) {
+                    if (e.target === modal) {
+                        console.log('👆 Clicked outside modal - closing');
+                        closePasswordModal();
                     }
                 });
             }
