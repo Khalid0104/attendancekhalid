@@ -1126,6 +1126,9 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Page loaded, setting up...');
             
+            // Load stored password
+            loadStoredPassword();
+            
             // Make sure login function is available globally
             window.signInWithPassword = signInWithPassword;
             
@@ -1142,6 +1145,17 @@
             updateCurrentDate();
             console.log('✅ Setup complete');
         });
+
+        // Load stored password from localStorage
+        function loadStoredPassword() {
+            const stored = localStorage.getItem('teachingApp_password');
+            if (stored) {
+                teacherPassword = stored;
+                console.log('📝 Loaded custom password from storage');
+            } else {
+                console.log('📝 Using default password: teacher123');
+            }
+        }
 
         // Load demo data
         function loadUserData() {
@@ -1349,7 +1363,73 @@
             }).join('');
         }
 
-        function markAttendance(student, method = 'Manual') {
+        // Load stored password from localStorage
+        function loadStoredPassword() {
+            const stored = localStorage.getItem('teachingApp_password');
+            if (stored) {
+                teacherPassword = stored;
+            }
+        }
+
+        // Save password to localStorage
+        function savePassword(newPassword) {
+            localStorage.setItem('teachingApp_password', newPassword);
+            teacherPassword = newPassword;
+        }
+
+        // Password settings functions
+        function showPasswordSettings() {
+            document.getElementById('passwordModal').classList.remove('hidden');
+        }
+
+        function closePasswordModal() {
+            const modal = document.getElementById('passwordModal');
+            if (modal) {
+                modal.classList.add('hidden');
+                // Clear form
+                const currentPassword = document.getElementById('currentPassword');
+                const newPassword = document.getElementById('newPassword');
+                const confirmPassword = document.getElementById('confirmPassword');
+                
+                if (currentPassword) currentPassword.value = '';
+                if (newPassword) newPassword.value = '';
+                if (confirmPassword) confirmPassword.value = '';
+            }
+        }
+
+        function changePassword() {
+            const currentInput = document.getElementById('currentPassword');
+            const newInput = document.getElementById('newPassword');
+            const confirmInput = document.getElementById('confirmPassword');
+            
+            if (!currentInput || !newInput || !confirmInput) {
+                alert('Error: Password form elements not found');
+                return;
+            }
+            
+            const current = currentInput.value;
+            const newPass = newInput.value;
+            const confirm = confirmInput.value;
+            
+            if (current !== teacherPassword) {
+                alert('Current password is incorrect!');
+                return;
+            }
+            
+            if (newPass.length < 6) {
+                alert('New password must be at least 6 characters long!');
+                return;
+            }
+            
+            if (newPass !== confirm) {
+                alert('New passwords do not match!');
+                return;
+            }
+            
+            savePassword(newPass);
+            closePasswordModal();
+            alert('Password updated successfully! 🔐');
+        }
             if (!student) return;
             
             const today = new Date().toDateString();
@@ -1524,6 +1604,9 @@
         window.markAttendance = markAttendance;
         window.addManualStar = addManualStar;
         window.addManualX = addManualX;
+        window.showPasswordSettings = showPasswordSettings;
+        window.closePasswordModal = closePasswordModal;
+        window.changePassword = changePassword;
 
         console.log('🎉 All functions loaded and ready!');
     </script>
