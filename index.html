@@ -732,10 +732,10 @@
     </div>
 
     <script>
-        // Global variables
+        // Global variables - start completely empty
         let currentUser = null;
         let currentClass = null;
-        let classes = {};
+        let classes = {}; // Always start empty
         let students = [];
         let attendanceLog = [];
         let todaysAttendance = {};
@@ -806,7 +806,15 @@
                 googleId: responsePayload.sub
             };
             
+            // Clear any existing data and start fresh
+            classes = {};
+            students = [];
+            attendanceLog = [];
+            todaysAttendance = {};
+            currentClass = null;
+            
             console.log('✅ User authenticated:', currentUser.name);
+            console.log('🆕 All data cleared - starting fresh');
             
             // Hide login screen and show main app
             document.getElementById('loginScreen').style.display = 'none';
@@ -848,34 +856,17 @@
             }
         }
 
-        // Load demo data
+        // Load user data - ALWAYS START EMPTY
         function loadUserData() {
-            if (Object.keys(classes).length === 0) {
-                classes = {
-                    'class1': {
-                        name: 'TCSF-1',
-                        subject: 'English',
-                        students: [
-                            {id: 1, name: "Ahmed Al-Rashid", stars: 5, xMarks: 1},
-                            {id: 2, name: "Fatima Hassan", stars: 8, xMarks: 0},
-                            {id: 3, name: "Omar Khalil", stars: 3, xMarks: 2},
-                            {id: 4, name: "Aisha Mohammed", stars: 12, xMarks: 0}
-                        ],
-                        attendance: {},
-                        log: []
-                    },
-                    'class2': {
-                        name: 'TCSF-2',
-                        subject: 'Math',
-                        students: [
-                            {id: 1, name: "Sara Abdullah", stars: 7, xMarks: 0},
-                            {id: 2, name: "Mohammed Ali", stars: 4, xMarks: 3}
-                        ],
-                        attendance: {},
-                        log: []
-                    }
-                };
-            }
+            // Force empty start - no demo classes ever
+            classes = {};
+            students = [];
+            attendanceLog = [];
+            todaysAttendance = {};
+            currentClass = null;
+            
+            console.log('🆕 Forced empty start - no classes loaded');
+            console.log('📊 Classes object:', classes);
             updateClassSelect();
         }
 
@@ -1493,6 +1484,10 @@
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 App loaded successfully!');
+            
+            // Clear any cached data to ensure fresh start
+            localStorage.removeItem('teachingApp_classes');
+            localStorage.removeItem('teachingApp_data');
             
             // Initialize Google Sign-In
             if (typeof google !== 'undefined' && google.accounts) {
