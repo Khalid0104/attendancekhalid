@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Happy Teaching with Khalid</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <meta name="google-signin-client_id" content="830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com">
     <style>
         * {
             margin: 0;
@@ -523,25 +525,26 @@
             <p class="login-subtitle">Your Beautiful Teaching Management System</p>
             
             <div class="login-form">
-                <div class="form-group">
-                    <label for="teacherNameInput">Your Name</label>
-                    <input type="text" id="teacherNameInput" placeholder="Enter your name (e.g., Khalid Ahmed)">
+                <div id="g_id_onload"
+                     data-client_id="830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com"
+                     data-context="signin"
+                     data-ux_mode="popup"
+                     data-callback="handleCredentialResponse"
+                     data-auto_prompt="false">
                 </div>
-                <div class="form-group">
-                    <label for="passwordInput">Teacher Password</label>
-                    <div class="password-input-container">
-                        <input type="password" id="passwordInput" placeholder="Enter your password">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('passwordInput')" title="Show password">
-                            👁️
-                        </button>
-                    </div>
+                
+                <div class="g_id_signin"
+                     data-type="standard"
+                     data-shape="pill"
+                     data-theme="outline"
+                     data-text="signin_with"
+                     data-size="large"
+                     data-logo_alignment="left">
                 </div>
-                <button class="login-btn" onclick="signInWithPassword()" type="button">
-                    🔑 Sign In to Teaching Dashboard
-                </button>
-                <div class="password-hint">
-                    💡 <strong>Default Password:</strong> teacher123<br>
-                    <small>You can change this in the system settings</small>
+                
+                <div class="login-hint" style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px; font-size: 0.9rem; color: rgba(102, 126, 234, 0.8); border: 1px solid rgba(102, 126, 234, 0.2); backdrop-filter: blur(10px);">
+                    🔐 <strong>Secure Google Sign-In</strong><br>
+                    <small>Use your Google account to access the teaching dashboard</small>
                 </div>
             </div>
         </div>
@@ -561,46 +564,6 @@
                     </select>
                     <button class="add-class-btn" onclick="showAddClassForm()">+ Add Class</button>
                     <button class="logout-btn" onclick="signOut()">Logout</button>
-                    <button class="add-class-btn" onclick="showPasswordSettings()">⚙️ Settings</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Password Settings Modal -->
-        <div id="passwordModal" class="password-modal hidden">
-            <div class="password-modal-content">
-                <button type="button" class="modal-close" onclick="closePasswordModal()" title="Close">✕</button>
-                <h3 style="color: #667eea; margin-bottom: 20px;">🔐 Password Settings</h3>
-                <div class="form-group">
-                    <label for="currentPassword">Current Password</label>
-                    <div class="password-input-container">
-                        <input type="password" id="currentPassword" placeholder="Enter current password">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('currentPassword')" title="Show password">
-                            👁️
-                        </button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="newPassword">New Password</label>
-                    <div class="password-input-container">
-                        <input type="password" id="newPassword" placeholder="Enter new password">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('newPassword')" title="Show password">
-                            👁️
-                        </button>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="confirmPassword">Confirm New Password</label>
-                    <div class="password-input-container">
-                        <input type="password" id="confirmPassword" placeholder="Confirm new password">
-                        <button type="button" class="password-toggle" onclick="togglePasswordVisibility('confirmPassword')" title="Show password">
-                            👁️
-                        </button>
-                    </div>
-                </div>
-                <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="button" class="add-button" onclick="changePassword()">Update Password</button>
-                    <button type="button" class="logout-btn" onclick="closePasswordModal()">Cancel</button>
                 </div>
             </div>
         </div>
@@ -824,6 +787,49 @@
             passwordInput.value = '';
             
             alert('Welcome ' + currentUser.name + '! 🎉');
+        }
+
+        // Google Sign-In Handler
+        function handleCredentialResponse(response) {
+            console.log('🔐 Google Sign-In response received');
+            
+            // Decode the JWT token to get user info
+            const responsePayload = decodeJwtResponse(response.credential);
+            
+            console.log('👤 User info:', responsePayload);
+            
+            // Set current user from Google data
+            currentUser = {
+                name: responsePayload.name,
+                email: responsePayload.email,
+                picture: responsePayload.picture,
+                googleId: responsePayload.sub
+            };
+            
+            console.log('✅ User authenticated:', currentUser.name);
+            
+            // Hide login screen and show main app
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('teacherName').textContent = currentUser.name;
+            
+            // Load demo data
+            loadUserData();
+            
+            // Show welcome message
+            setTimeout(() => {
+                alert('Welcome ' + currentUser.name + '! 🎉\n\nSigned in with Google successfully!');
+            }, 500);
+        }
+
+        // Decode JWT token to get user information
+        function decodeJwtResponse(token) {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
         }
 
         // Toggle password visibility
@@ -1187,12 +1193,29 @@
         }
 
         function signOut() {
+            console.log('👋 Signing out...');
+            
+            // Sign out from Google
+            if (typeof google !== 'undefined' && google.accounts && google.accounts.id) {
+                google.accounts.id.disableAutoSelect();
+            }
+            
+            // Clear current user
             currentUser = null;
             currentClass = null;
+            
+            // Show login screen
             document.getElementById('loginScreen').style.display = 'flex';
             document.getElementById('mainApp').style.display = 'none';
             document.getElementById('classContent').style.display = 'none';
-            alert('Logged out successfully! 👋');
+            
+            // Stop any active scanners
+            if (isScanning) {
+                stopScanner();
+            }
+            
+            console.log('✅ Signed out successfully');
+            alert('Signed out successfully! 👋');
         }
 
         function showPasswordSettings() {
@@ -1471,35 +1494,29 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 App loaded successfully!');
             
-            // Load stored password
-            const stored = localStorage.getItem('teachingApp_password');
-            if (stored) {
-                teacherPassword = stored;
-            }
-            
-            // Add enter key support for login
-            const passwordInput = document.getElementById('passwordInput');
-            if (passwordInput) {
-                passwordInput.addEventListener('keypress', function(e) {
-                    if (e.key === 'Enter') {
-                        signInWithPassword();
-                    }
+            // Initialize Google Sign-In
+            if (typeof google !== 'undefined' && google.accounts) {
+                google.accounts.id.initialize({
+                    client_id: "830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com",
+                    callback: handleCredentialResponse
                 });
-            }
-            
-            // Add click outside modal to close
-            const modal = document.getElementById('passwordModal');
-            if (modal) {
-                modal.addEventListener('click', function(e) {
-                    if (e.target === modal) {
-                        console.log('👆 Clicked outside modal - closing');
-                        closePasswordModal();
+                console.log('✅ Google Sign-In initialized');
+            } else {
+                console.log('⚠️ Google Sign-In not loaded yet, will retry...');
+                // Retry after a short delay
+                setTimeout(() => {
+                    if (typeof google !== 'undefined' && google.accounts) {
+                        google.accounts.id.initialize({
+                            client_id: "830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com",
+                            callback: handleCredentialResponse
+                        });
+                        console.log('✅ Google Sign-In initialized (delayed)');
                     }
-                });
+                }, 1000);
             }
             
             updateCurrentDate();
-            console.log('✅ Ready to use! Default password: teacher123');
+            console.log('✅ Ready to use with Google Sign-In!');
         });
     </script>
 </body>
