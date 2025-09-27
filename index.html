@@ -698,7 +698,7 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="totalStars">0</div>
-                    <div class="stat-label">Total Stars ⭐</div>
+                    <div class="stat-label">Total Stars</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-number" id="totalXMarks">0</div>
@@ -711,8 +711,9 @@
                 <div class="tab" onclick="switchTab('students')">👥 Students</div>
                 <div class="tab" onclick="switchTab('assignments')">📝 Assignments</div>
                 <div class="tab" onclick="switchTab('copybook')">📚 Copybook</div>
+                <div class="tab" onclick="switchTab('reports')">📊 Reports</div>
                 <div class="tab" onclick="switchTab('attendance')">📋 Today's Log</div>
-                <div class="tab" onclick="switchTab('log')">📊 History</div>
+                <div class="tab" onclick="switchTab('log')">📈 History</div>
             </div>
 
             <!-- QR Scanner Tab -->
@@ -750,8 +751,8 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Name</th>
-                                <th>Stars ⭐</th>
-                                <th>❌ Marks</th>
+                                <th>Stars</th>
+                                <th>X Marks</th>
                                 <th>Actions</th>
                             </tr>
                         </thead>
@@ -863,6 +864,27 @@
                 </div>
             </div>
 
+            <!-- Reports Tab -->
+            <div id="reportsTab" class="tab-content hidden">
+                <h2>📊 Assignment Reports</h2>
+                
+                <div id="assignmentReports" style="margin-bottom: 30px;">
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 25px;">
+                        <h3 style="color: #667eea; margin-bottom: 15px;">📝 Assignment History</h3>
+                        <div id="assignmentHistoryList">
+                            <p style="text-align: center; color: #666; font-style: italic;">No assignments completed yet</p>
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 25px;">
+                        <h3 style="color: #9c27b0; margin-bottom: 15px;">📚 Copybook History</h3>
+                        <div id="copybookHistoryList">
+                            <p style="text-align: center; color: #666; font-style: italic;">No copybook checks completed yet</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Today's Attendance Tab -->
             <div id="attendanceTab" class="tab-content hidden">
                 <h2>📋 Today's Attendance</h2>
@@ -923,6 +945,8 @@
         let isCopybookScanning = false;
         let currentAssignmentData = null;
         let currentCopybookData = null;
+        let assignmentHistory = [];
+        let copybookHistory = [];
 
         // Simple password sign in
         function signInWithPassword() {
@@ -1112,6 +1136,8 @@
             currentClass = classId;
             students = classes[classId].students;
             attendanceLog = classes[classId].log;
+            assignmentHistory = classes[classId].assignmentHistory || [];
+            copybookHistory = classes[classId].copybookHistory || [];
             todaysAttendance = classes[classId].attendance[new Date().toDateString()] || {};
             
             document.getElementById('classContent').style.display = 'block';
@@ -1124,6 +1150,8 @@
             renderAttendanceLog();
             renderAssignmentTable();
             renderCopybookTable();
+            renderAssignmentHistory();
+            renderCopybookHistory();
         }
 
         function updateStats() {
@@ -1150,14 +1178,14 @@
                 <tr>
                     <td>${student.id}</td>
                     <td>${student.name}</td>
-                    <td><span style="color: #ffd700; font-size: 1.2rem;">${'⭐'.repeat(student.stars || 0)} (${student.stars || 0})</span></td>
-                    <td><span style="color: #e74c3c; font-weight: bold;">${'❌'.repeat(student.xMarks || 0)} (${student.xMarks || 0})</span></td>
+                    <td><span style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">${student.stars || 0}</span></td>
+                    <td><span style="color: #e74c3c; font-weight: bold;">${student.xMarks || 0}</span></td>
                     <td>
                         <button class="present-btn" onclick="markAttendance(${student.id}, 'Manual')" ${todaysAttendance[student.id] ? 'disabled' : ''}>
                             ${todaysAttendance[student.id] ? 'Present ✓' : 'Present'}
                         </button>
-                        <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐</button>
-                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌</button>
+                        <button class="manual-btn" onclick="addManualStar(${student.id})">+Star</button>
+                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+X</button>
                     </td>
                 </tr>
             `).join('');
