@@ -707,11 +707,12 @@
             </div>
 
             <div class="tabs">
-                <div class="tab active" onclick="switchTab('scanner')">📱 QR Scanner</div>
+                <div class="tab active" onclick="switchTab('scanner')">📱 Attendance</div>
                 <div class="tab" onclick="switchTab('students')">👥 Students</div>
                 <div class="tab" onclick="switchTab('assignments')">📝 Assignments</div>
-                <div class="tab" onclick="switchTab('attendance')">📋 Attendance</div>
-                <div class="tab" onclick="switchTab('log')">📊 Log</div>
+                <div class="tab" onclick="switchTab('copybook')">📚 Copybook</div>
+                <div class="tab" onclick="switchTab('attendance')">📋 Today's Log</div>
+                <div class="tab" onclick="switchTab('log')">📊 History</div>
             </div>
 
             <!-- QR Scanner Tab -->
@@ -762,23 +763,101 @@
 
             <!-- Assignments Tab -->
             <div id="assignmentsTab" class="tab-content hidden">
-                <h2>📝 Assignment & Homework Tracker</h2>
-                <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 15px; margin-bottom: 25px;">
-                    <p style="text-align: center; color: #667eea; font-size: 1.1rem;">
-                        🚧 <strong>Assignment Scanner Coming Soon!</strong><br>
-                        <small>Use manual star/❌ buttons for now</small>
-                    </p>
-                </div>
+                <h2>📝 Assignment Scanner</h2>
                 
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="assignmentName">Assignment Name</label>
+                        <input type="text" id="assignmentName" placeholder="e.g., Math Exercise 5.2">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button id="assignmentScanBtn" class="scan-button" onclick="startAssignmentScanner()">
+                            Start Assignment Scanner
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="add-button" onclick="finishAssignment()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                            Finish & Mark Missing
+                        </button>
+                    </div>
+                </div>
+
+                <div id="currentAssignment" class="hidden">
+                    <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="color: #11998e; margin-bottom: 10px;">📝 Active: <span id="currentAssignmentName"></span></h3>
+                        <p style="margin: 0;"><strong>Completed:</strong> <span id="assignmentScannedCount">0</span> | <strong>Remaining:</strong> <span id="assignmentRemainingCount">0</span></p>
+                    </div>
+                </div>
+
+                <div class="scanner-container">
+                    <div id="assignmentReader" style="margin: 25px auto; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.2); max-width: 400px;"></div>
+                    <div id="assignmentScanResult"></div>
+                </div>
+
                 <div class="table-container">
                     <table>
                         <thead>
                             <tr>
                                 <th>Student</th>
+                                <th>Status</th>
+                                <th>Time</th>
                                 <th>Manual Actions</th>
                             </tr>
                         </thead>
                         <tbody id="assignmentTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Copybook Tab -->
+            <div id="copybookTab" class="tab-content hidden">
+                <h2>📚 Copybook Scanner</h2>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="copybookName">Copybook Check</label>
+                        <input type="text" id="copybookName" placeholder="e.g., Daily Notes Check">
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button id="copybookScanBtn" class="scan-button" onclick="startCopybookScanner()">
+                            Start Copybook Scanner
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label>&nbsp;</label>
+                        <button class="add-button" onclick="finishCopybook()" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);">
+                            Finish & Mark Missing
+                        </button>
+                    </div>
+                </div>
+
+                <div id="currentCopybook" class="hidden">
+                    <div style="background: rgba(156, 39, 176, 0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
+                        <h3 style="color: #9c27b0; margin-bottom: 10px;">📚 Active: <span id="currentCopybookName"></span></h3>
+                        <p style="margin: 0;"><strong>Checked:</strong> <span id="copybookScannedCount">0</span> | <strong>Missing:</strong> <span id="copybookRemainingCount">0</span></p>
+                    </div>
+                </div>
+
+                <div class="scanner-container">
+                    <div id="copybookReader" style="margin: 25px auto; border-radius: 20px; overflow: hidden; box-shadow: 0 15px 40px rgba(0,0,0,0.2); max-width: 400px;"></div>
+                    <div id="copybookScanResult"></div>
+                </div>
+
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                                <th>Manual Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="copybookTable">
                         </tbody>
                     </table>
                 </div>
@@ -837,7 +916,13 @@
         let todaysAttendance = {};
         let teacherPassword = 'teacher123';
         let html5QrcodeScanner = null;
+        let assignmentScanner = null;
+        let copybookScanner = null;
         let isScanning = false;
+        let isAssignmentScanning = false;
+        let isCopybookScanning = false;
+        let currentAssignmentData = null;
+        let currentCopybookData = null;
 
         // Simple password sign in
         function signInWithPassword() {
@@ -1038,6 +1123,7 @@
             renderTodaysAttendance();
             renderAttendanceLog();
             renderAssignmentTable();
+            renderCopybookTable();
         }
 
         function updateStats() {
@@ -1110,15 +1196,48 @@
             const tbody = document.getElementById('assignmentTable');
             if (!tbody) return;
             
-            tbody.innerHTML = students.map(student => `
-                <tr>
-                    <td>${student.name}</td>
-                    <td>
-                        <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐ Star</button>
-                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌ X Mark</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = students.map(student => {
+                const isScanned = currentAssignmentData && currentAssignmentData.scannedStudents.has(student.id);
+                const status = isScanned ? 'Completed ✅' : 'Pending ⏳';
+                const time = isScanned ? new Date().toLocaleTimeString() : '-';
+                
+                return `
+                    <tr style="${isScanned ? 'background: linear-gradient(135deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.05));' : ''}">
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐ Star</button>
+                            <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌ X Mark</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderCopybookTable() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('copybookTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = students.map(student => {
+                const isScanned = currentCopybookData && currentCopybookData.scannedStudents.has(student.id);
+                const status = isScanned ? 'Brought ✅' : 'Missing ⏳';
+                const time = isScanned ? new Date().toLocaleTimeString() : '-';
+                
+                return `
+                    <tr style="${isScanned ? 'background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(233, 30, 99, 0.05));' : ''}">
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐ Star</button>
+                            <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌ X Mark</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         function renderAttendanceLog() {
@@ -1320,9 +1439,15 @@
                 }
             });
 
-            // Stop scanner if switching away from scanner tab
+            // Stop scanners if switching away from scanner tabs
             if (tabName !== 'scanner' && isScanning) {
                 stopScanner();
+            }
+            if (tabName !== 'assignments' && isAssignmentScanning) {
+                stopAssignmentScanner();
+            }
+            if (tabName !== 'copybook' && isCopybookScanning) {
+                stopCopybookScanner();
             }
         }
 
@@ -1614,6 +1739,376 @@
                     `;
                 }, 4000);
             }
+        }
+
+        // Assignment Scanner Functions
+        function startAssignmentScanner() {
+            const assignmentName = document.getElementById('assignmentName').value.trim();
+            if (!assignmentName) {
+                alert('Please enter an assignment name first!');
+                return;
+            }
+
+            if (isAssignmentScanning) {
+                stopAssignmentScanner();
+                return;
+            }
+
+            if (!currentClass || !students.length) {
+                alert('Please select a class and add students first!');
+                return;
+            }
+
+            currentAssignmentData = {
+                name: assignmentName,
+                date: new Date().toDateString(),
+                scannedStudents: new Set(),
+                startTime: new Date().toLocaleTimeString()
+            };
+
+            document.getElementById('currentAssignment').classList.remove('hidden');
+            document.getElementById('currentAssignmentName').textContent = assignmentName;
+            updateAssignmentCounts();
+
+            assignmentScanner = new Html5Qrcode("assignmentReader");
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            assignmentScanner.start(
+                { facingMode: "environment" },
+                config,
+                onAssignmentScanSuccess,
+                onAssignmentScanFailure
+            ).then(() => {
+                isAssignmentScanning = true;
+                document.getElementById('assignmentScanBtn').textContent = 'Stop Scanner';
+                document.getElementById('assignmentScanBtn').style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                
+                const scanResult = document.getElementById('assignmentScanResult');
+                scanResult.innerHTML = `
+                    <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                        <p style="color: #11998e; font-weight: 600; text-align: center;">
+                            📝 <strong>Assignment Scanner Active!</strong><br>
+                            <small>Scan students who completed: ${assignmentName}</small>
+                        </p>
+                    </div>
+                `;
+            }).catch(err => {
+                alert(`Assignment scanner failed to start: ${err}`);
+            });
+        }
+
+        function stopAssignmentScanner() {
+            if (assignmentScanner && isAssignmentScanning) {
+                assignmentScanner.stop().then(() => {
+                    assignmentScanner.clear();
+                    isAssignmentScanning = false;
+                    document.getElementById('assignmentScanBtn').textContent = 'Start Assignment Scanner';
+                    document.getElementById('assignmentScanBtn').style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
+                    
+                    const scanResult = document.getElementById('assignmentScanResult');
+                    scanResult.innerHTML = '';
+                }).catch(err => {
+                    console.error('Error stopping assignment scanner:', err);
+                });
+            }
+        }
+
+        function onAssignmentScanSuccess(decodedText, decodedResult) {
+            const student = students.find(s => 
+                s.id.toString() === decodedText.trim() || 
+                s.name.toLowerCase() === decodedText.trim().toLowerCase()
+            );
+
+            if (student) {
+                if (currentAssignmentData.scannedStudents.has(student.id)) {
+                    const scanResult = document.getElementById('assignmentScanResult');
+                    scanResult.innerHTML = `
+                        <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #ff9800;">
+                            <p style="color: #ff9800; font-weight: 600; text-align: center;">
+                                ⚠️ <strong>${student.name} already scanned!</strong><br>
+                                <small>Student already completed this assignment</small>
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    currentAssignmentData.scannedStudents.add(student.id);
+                    
+                    // Add 2 bonus stars for assignment completion
+                    student.stars = (student.stars || 0) + 2;
+                    
+                    // Update class data and save
+                    if (currentClass) {
+                        classes[currentClass].students = students;
+                        saveUserData();
+                    }
+                    
+                    addToLog(student.name, 'Assignment', 'QR Scan', `Completed: ${currentAssignmentData.name} (+2 stars)`);
+                    
+                    const scanResult = document.getElementById('assignmentScanResult');
+                    scanResult.innerHTML = `
+                        <div style="background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #4CAF50;">
+                            <p style="color: #4CAF50; font-weight: 600; text-align: center;">
+                                ✅ <strong>${student.name} completed assignment!</strong><br>
+                                📝 ${currentAssignmentData.name} (+2 stars)
+                            </p>
+                        </div>
+                    `;
+                    
+                    updateAssignmentCounts();
+                    updateStats();
+                    renderStudentsTable();
+                    renderAssignmentTable();
+                }
+            } else {
+                const scanResult = document.getElementById('assignmentScanResult');
+                scanResult.innerHTML = `
+                    <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #ff9800;">
+                        <p style="color: #ff9800; font-weight: 600; text-align: center;">
+                            ⚠️ <strong>Student Not Found!</strong><br>
+                            📱 Scanned: "${decodedText}"
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function onAssignmentScanFailure(error) {
+            // Ignore scan failures
+        }
+
+        function updateAssignmentCounts() {
+            if (currentAssignmentData) {
+                const scanned = currentAssignmentData.scannedStudents.size;
+                const remaining = students.length - scanned;
+                document.getElementById('assignmentScannedCount').textContent = scanned;
+                document.getElementById('assignmentRemainingCount').textContent = remaining;
+            }
+        }
+
+        function finishAssignment() {
+            if (!currentAssignmentData) {
+                alert('No active assignment!');
+                return;
+            }
+
+            // Mark all non-scanned students with X
+            students.forEach(student => {
+                if (!currentAssignmentData.scannedStudents.has(student.id)) {
+                    student.xMarks = (student.xMarks || 0) + 1;
+                    addToLog(student.name, 'Assignment', 'Auto-Mark', `Missing: ${currentAssignmentData.name} (+1 ❌)`);
+                }
+            });
+
+            // Update class data and save
+            if (currentClass) {
+                classes[currentClass].students = students;
+                saveUserData();
+            }
+
+            alert(`Assignment "${currentAssignmentData.name}" completed!\nMissing students marked with ❌`);
+            
+            // Reset assignment data
+            currentAssignmentData = null;
+            document.getElementById('currentAssignment').classList.add('hidden');
+            document.getElementById('assignmentName').value = '';
+            
+            if (isAssignmentScanning) {
+                stopAssignmentScanner();
+            }
+
+            updateStats();
+            renderStudentsTable();
+            renderAssignmentTable();
+        }
+
+        // Copybook Scanner Functions
+        function startCopybookScanner() {
+            const copybookName = document.getElementById('copybookName').value.trim();
+            if (!copybookName) {
+                alert('Please enter a copybook check name first!');
+                return;
+            }
+
+            if (isCopybookScanning) {
+                stopCopybookScanner();
+                return;
+            }
+
+            if (!currentClass || !students.length) {
+                alert('Please select a class and add students first!');
+                return;
+            }
+
+            currentCopybookData = {
+                name: copybookName,
+                date: new Date().toDateString(),
+                scannedStudents: new Set(),
+                startTime: new Date().toLocaleTimeString()
+            };
+
+            document.getElementById('currentCopybook').classList.remove('hidden');
+            document.getElementById('currentCopybookName').textContent = copybookName;
+            updateCopybookCounts();
+
+            copybookScanner = new Html5Qrcode("copybookReader");
+            
+            const config = {
+                fps: 10,
+                qrbox: { width: 250, height: 250 },
+                aspectRatio: 1.0
+            };
+
+            copybookScanner.start(
+                { facingMode: "environment" },
+                config,
+                onCopybookScanSuccess,
+                onCopybookScanFailure
+            ).then(() => {
+                isCopybookScanning = true;
+                document.getElementById('copybookScanBtn').textContent = 'Stop Scanner';
+                document.getElementById('copybookScanBtn').style.background = 'linear-gradient(135deg, #e74c3c 0%, #c0392b 100%)';
+                
+                const scanResult = document.getElementById('copybookScanResult');
+                scanResult.innerHTML = `
+                    <div style="background: rgba(156, 39, 176, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                        <p style="color: #9c27b0; font-weight: 600; text-align: center;">
+                            📚 <strong>Copybook Scanner Active!</strong><br>
+                            <small>Scan students who brought: ${copybookName}</small>
+                        </p>
+                    </div>
+                `;
+            }).catch(err => {
+                alert(`Copybook scanner failed to start: ${err}`);
+            });
+        }
+
+        function stopCopybookScanner() {
+            if (copybookScanner && isCopybookScanning) {
+                copybookScanner.stop().then(() => {
+                    copybookScanner.clear();
+                    isCopybookScanning = false;
+                    document.getElementById('copybookScanBtn').textContent = 'Start Copybook Scanner';
+                    document.getElementById('copybookScanBtn').style.background = 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)';
+                    
+                    const scanResult = document.getElementById('copybookScanResult');
+                    scanResult.innerHTML = '';
+                }).catch(err => {
+                    console.error('Error stopping copybook scanner:', err);
+                });
+            }
+        }
+
+        function onCopybookScanSuccess(decodedText, decodedResult) {
+            const student = students.find(s => 
+                s.id.toString() === decodedText.trim() || 
+                s.name.toLowerCase() === decodedText.trim().toLowerCase()
+            );
+
+            if (student) {
+                if (currentCopybookData.scannedStudents.has(student.id)) {
+                    const scanResult = document.getElementById('copybookScanResult');
+                    scanResult.innerHTML = `
+                        <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #ff9800;">
+                            <p style="color: #ff9800; font-weight: 600; text-align: center;">
+                                ⚠️ <strong>${student.name} already scanned!</strong><br>
+                                <small>Student already checked for copybook</small>
+                            </p>
+                        </div>
+                    `;
+                } else {
+                    currentCopybookData.scannedStudents.add(student.id);
+                    
+                    // Add 1 star for bringing copybook
+                    student.stars = (student.stars || 0) + 1;
+                    
+                    // Update class data and save
+                    if (currentClass) {
+                        classes[currentClass].students = students;
+                        saveUserData();
+                    }
+                    
+                    addToLog(student.name, 'Copybook', 'QR Scan', `Brought: ${currentCopybookData.name} (+1 star)`);
+                    
+                    const scanResult = document.getElementById('copybookScanResult');
+                    scanResult.innerHTML = `
+                        <div style="background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #4CAF50;">
+                            <p style="color: #4CAF50; font-weight: 600; text-align: center;">
+                                ✅ <strong>${student.name} brought copybook!</strong><br>
+                                📚 ${currentCopybookData.name} (+1 star)
+                            </p>
+                        </div>
+                    `;
+                    
+                    updateCopybookCounts();
+                    updateStats();
+                    renderStudentsTable();
+                    renderCopybookTable();
+                }
+            } else {
+                const scanResult = document.getElementById('copybookScanResult');
+                scanResult.innerHTML = `
+                    <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #ff9800;">
+                        <p style="color: #ff9800; font-weight: 600; text-align: center;">
+                            ⚠️ <strong>Student Not Found!</strong><br>
+                            📱 Scanned: "${decodedText}"
+                        </p>
+                    </div>
+                `;
+            }
+        }
+
+        function onCopybookScanFailure(error) {
+            // Ignore scan failures
+        }
+
+        function updateCopybookCounts() {
+            if (currentCopybookData) {
+                const scanned = currentCopybookData.scannedStudents.size;
+                const remaining = students.length - scanned;
+                document.getElementById('copybookScannedCount').textContent = scanned;
+                document.getElementById('copybookRemainingCount').textContent = remaining;
+            }
+        }
+
+        function finishCopybook() {
+            if (!currentCopybookData) {
+                alert('No active copybook check!');
+                return;
+            }
+
+            // Mark all non-scanned students with X
+            students.forEach(student => {
+                if (!currentCopybookData.scannedStudents.has(student.id)) {
+                    student.xMarks = (student.xMarks || 0) + 1;
+                    addToLog(student.name, 'Copybook', 'Auto-Mark', `Missing: ${currentCopybookData.name} (+1 ❌)`);
+                }
+            });
+
+            // Update class data and save
+            if (currentClass) {
+                classes[currentClass].students = students;
+                saveUserData();
+            }
+
+            alert(`Copybook check "${currentCopybookData.name}" completed!\nMissing students marked with ❌`);
+            
+            // Reset copybook data
+            currentCopybookData = null;
+            document.getElementById('currentCopybook').classList.add('hidden');
+            document.getElementById('copybookName').value = '';
+            
+            if (isCopybookScanning) {
+                stopCopybookScanner();
+            }
+
+            updateStats();
+            renderStudentsTable();
+            renderCopybookTable();
         }
 
         function onScanFailure(error) {
