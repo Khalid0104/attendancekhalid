@@ -744,6 +744,15 @@
                         <button class="add-button" onclick="addStudent()">Add Student</button>
                     </div>
                 </div>
+
+                <div style="display: flex; gap: 10px; margin-bottom: 25px; flex-wrap: wrap;">
+                    <button onclick="showImportModal()" style="background: linear-gradient(135deg, #3498db 0%, #2980b9 100%); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        📥 Import Students
+                    </button>
+                    <button onclick="exportStudents()" style="background: linear-gradient(135deg, #27ae60 0%, #229954 100%); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        📤 Export Students
+                    </button>
+                </div>
                 
                 <div class="table-container">
                     <table>
@@ -759,6 +768,29 @@
                         <tbody id="studentsTable">
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Import Students Modal -->
+            <div id="importModal" class="password-modal hidden">
+                <div class="password-modal-content" style="max-width: 500px;">
+                    <button type="button" class="modal-close" onclick="closeImportModal()" title="Close">✕</button>
+                    <h3 style="color: #3498db; margin-bottom: 20px;">📥 Import Students</h3>
+                    <div class="form-group">
+                        <label for="importText">Student Names (one per line)</label>
+                        <textarea id="importText" rows="10" placeholder="Ahmed Said&#10;Sara Latifi&#10;Omar Hassan&#10;Fatima Ali" 
+                                  style="width: 100%; padding: 15px; border: 2px solid rgba(52, 152, 219, 0.3); border-radius: 15px; font-size: 1rem; font-family: inherit; resize: vertical; background: rgba(255,255,255,0.9);"></textarea>
+                    </div>
+                    <div style="background: rgba(52, 152, 219, 0.1); padding: 15px; border-radius: 10px; margin: 15px 0; font-size: 0.9rem;">
+                        <strong>📝 Instructions:</strong><br>
+                        • Enter one student name per line<br>
+                        • IDs will be assigned automatically (1, 2, 3...)<br>
+                        • Existing students won't be duplicated
+                    </div>
+                    <div style="display: flex; gap: 10px; margin-top: 20px;">
+                        <button type="button" class="add-button" onclick="importStudents()">Import Students</button>
+                        <button type="button" class="logout-btn" onclick="closeImportModal()">Cancel</button>
+                    </div>
                 </div>
             </div>
 
@@ -2216,6 +2248,156 @@
             updateStats();
             renderStudentsTable();
             renderCopybookTable();
+        }
+
+        function showImportModal() {
+            document.getElementById('importModal').classList.remove('hidden');
+        }
+
+        function closeImportModal() {
+            document.getElementById('importModal').classList.add('hidden');
+            document.getElementById('importText').value = '';
+        }
+
+        function importStudents() {
+            if (!currentClass) {
+                alert('Please select a class first!');
+                return;
+            }
+
+            const importText = document.getElementById('importText').value.trim();
+            if (!importText) {
+                alert('Please enter student names!');
+                return;
+            }
+
+            // Split by lines and clean up names
+            const studentNames = importText.split('\n')
+                .map(name => name.trim())
+                .filter(name => name.length > 0);
+
+            if (studentNames.length === 0) {
+                alert('No valid student names found!');
+                return;
+            }
+
+            let addedCount = 0;
+            let skippedCount = 0;
+            const skippedNames = [];
+
+            // Get the next available ID
+            let nextId = students.length > 0 ? Math.max(...students.map(s => s.id)) + 1 : 1;
+
+            studentNames.forEach(name => {
+                // Check if student already exists
+                const existingStudent = students.find(s => 
+                    s.name.toLowerCase().trim() === name.toLowerCase().trim()
+                );
+
+                if (existingStudent) {
+                    skippedCount++;
+                    skippedNames.push(name);
+                } else {
+                    // Add new student
+                    const newStudent = {
+                        id: nextId,
+                        name: name,
+                        stars: 0,
+                        xMarks: 0
+                    };
+                    students.push(newStudent);
+                    nextId++;
+                    addedCount++;
+                }
+            });
+
+            // Update class data and save
+            if (currentClass) {
+                classes[currentClass].students = students;
+                saveUserData();
+            }
+
+            // Show results
+            let message = `Import completed!\n\n✅ Added: ${addedCount} students`;
+            if (skippedCount > 0) {
+                message += `\n⚠️ Skipped: ${skippedCount} duplicates`;
+                if (skippedNames.length <= 5) {
+                    message += `\n(${skippedNames.join(', ')})`;
+                }
+            }
+
+            alert(message);
+
+            // Close modal and refresh displays
+            closeImportModal();
+            updateStats();
+            renderStudentsTable();
+            renderTodaysAttendance();
+            renderAssignmentTable();
+            renderCopybookTable();
+        }
+
+        function exportStudents() {
+            if (!currentClass || !students.length) {
+                alert('No students to export! Please select a class with students.');
+                return;
+            }
+
+            // Create export text (just names, one per line)
+            const exportText = students
+                .sort((a, b) => a.id - b.id) // Sort by ID
+                .map(student => student.name)
+                .join('\n');
+
+            // Create detailed export with stats
+            const detailedExport = students
+                .sort((a, b) => a.id - b.id)
+                .map(student => `${student.name} (ID: ${student.id}, Stars: ${student.stars || 0}, X: ${student.xMarks || 0})`)
+                .join('\n');
+
+            // Create export options
+            const choice = confirm(
+                `Export ${students.length} students from "${classes[currentClass].name}"?\n\n` +
+                `Click OK for simple names list\n` +
+                `Click Cancel for detailed list with stats`
+            );
+
+            const finalExport = choice ? exportText : detailedExport;
+            const exportType = choice ? 'names' : 'detailed';
+
+            // Copy to clipboard
+            if (navigator.clipboard) {
+                navigator.clipboard.writeText(finalExport).then(() => {
+                    alert(`✅ ${exportType === 'names' ? 'Student names' : 'Detailed student data'} copied to clipboard!\n\nYou can paste this into any text editor or document.`);
+                }).catch(() => {
+                    showExportModal(finalExport, exportType);
+                });
+            } else {
+                showExportModal(finalExport, exportType);
+            }
+        }
+
+        function showExportModal(exportText, exportType) {
+            // Create a modal to show export text if clipboard fails
+            const modal = document.createElement('div');
+            modal.className = 'password-modal';
+            modal.innerHTML = `
+                <div class="password-modal-content" style="max-width: 600px;">
+                    <h3 style="color: #27ae60; margin-bottom: 20px;">📤 Export Students (${exportType})</h3>
+                    <textarea readonly style="width: 100%; height: 300px; padding: 15px; border: 2px solid #27ae60; border-radius: 10px; font-family: monospace; font-size: 0.9rem;">${exportText}</textarea>
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(39, 174, 96, 0.1); border-radius: 10px; font-size: 0.9rem;">
+                        📋 <strong>Copy this text and paste it wherever you need it</strong>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button onclick="this.closest('.password-modal').remove()" class="add-button">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            // Auto-select text for easy copying
+            const textarea = modal.querySelector('textarea');
+            textarea.select();
         }
 
         function onScanFailure(error) {
