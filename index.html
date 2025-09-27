@@ -888,6 +888,16 @@
             <!-- Today's Attendance Tab -->
             <div id="attendanceTab" class="tab-content hidden">
                 <h2>📋 Today's Attendance</h2>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <div style="font-size: 1.1rem; color: #667eea;">
+                        <strong>Date:</strong> <span id="todayDate"></span>
+                    </div>
+                    <button onclick="clearTodaysData()" style="background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); color: white; border: none; padding: 10px 20px; border-radius: 10px; font-weight: 600; cursor: pointer;">
+                        🗑️ Clear Today's Data
+                    </button>
+                </div>
+                
                 <div class="table-container">
                     <table>
                         <thead>
@@ -1174,18 +1184,20 @@
             const tbody = document.getElementById('studentsTable');
             if (!tbody) return;
             
+            console.log('Rendering students table with star format'); // Debug log
+            
             tbody.innerHTML = students.map(student => `
                 <tr>
                     <td>${student.id}</td>
                     <td>${student.name}</td>
-                    <td><span style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">${student.stars || 0}</span></td>
-                    <td><span style="color: #e74c3c; font-weight: bold;">${student.xMarks || 0}</span></td>
+                    <td><span style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">⭐ (${student.stars || 0})</span></td>
+                    <td><span style="color: #e74c3c; font-weight: bold;">❌ (${student.xMarks || 0})</span></td>
                     <td>
                         <button class="present-btn" onclick="markAttendance(${student.id}, 'Manual')" ${todaysAttendance[student.id] ? 'disabled' : ''}>
                             ${todaysAttendance[student.id] ? 'Present ✓' : 'Present'}
                         </button>
-                        <button class="manual-btn" onclick="addManualStar(${student.id})">+Star</button>
-                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+X</button>
+                        <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐</button>
+                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌</button>
                     </td>
                 </tr>
             `).join('');
@@ -1626,6 +1638,46 @@
             }, 200);
         }
 
+        function clearTodaysData() {
+            if (!currentClass) {
+                alert('Please select a class first!');
+                return;
+            }
+
+            const confirmClear = confirm(
+                `Are you sure you want to clear all of today's data?\n\n` +
+                `This will remove:\n` +
+                `• All attendance records for today\n` +
+                `• Today's activity log entries\n\n` +
+                `This action cannot be undone!`
+            );
+
+            if (!confirmClear) return;
+
+            const today = new Date().toDateString();
+
+            // Clear today's attendance
+            todaysAttendance = {};
+            if (classes[currentClass].attendance[today]) {
+                delete classes[currentClass].attendance[today];
+            }
+
+            // Remove today's entries from the log
+            attendanceLog = attendanceLog.filter(entry => entry.date !== today);
+            classes[currentClass].log = attendanceLog;
+
+            // Save the updated data
+            saveUserData();
+
+            // Re-render everything
+            updateStats();
+            renderStudentsTable();
+            renderTodaysAttendance();
+            renderAttendanceLog();
+
+            alert('Today\'s data has been cleared successfully! 🗑️');
+        }
+
         function updateCurrentDate() {
             const today = new Date();
             const options = { 
@@ -1637,6 +1689,12 @@
             const dateElement = document.getElementById('currentDate');
             if (dateElement) {
                 dateElement.textContent = today.toLocaleDateString('en-US', options);
+            }
+            
+            // Also update the today's attendance tab date
+            const todayDateElement = document.getElementById('todayDate');
+            if (todayDateElement) {
+                todayDateElement.textContent = today.toLocaleDateString('en-US', options);
             }
         }
 
