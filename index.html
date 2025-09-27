@@ -1021,9 +1021,10 @@
                 googleId: responsePayload.sub
             };
             
-            // Don't clear data anymore - load user's existing data
-            console.log('✅ User authenticated:', currentUser.name);
-            console.log('📧 User email:', currentUser.email);
+            // Save user session to localStorage for persistence
+            localStorage.setItem('teachingApp_currentUser', JSON.stringify(currentUser));
+            
+            console.log('✅ User authenticated and saved:', currentUser.name);
             
             // Hide login screen and show main app
             document.getElementById('loginScreen').style.display = 'none';
@@ -1037,8 +1038,8 @@
             setTimeout(() => {
                 const classCount = Object.keys(classes).length;
                 const welcomeMsg = classCount > 0 
-                    ? `Welcome back ${currentUser.name}! 🎉\n\nYou have ${classCount} class${classCount > 1 ? 'es' : ''} ready to use.`
-                    : `Welcome ${currentUser.name}! 🎉\n\nStart by creating your first class.`;
+                    ? `Welcome back ${currentUser.name}! You have ${classCount} class${classCount > 1 ? 'es' : ''} ready to use.`
+                    : `Welcome ${currentUser.name}! Start by creating your first class.`;
                 alert(welcomeMsg);
             }, 500);
         }
@@ -1510,6 +1511,9 @@
                 google.accounts.id.disableAutoSelect();
             }
             
+            // Clear user session from localStorage
+            localStorage.removeItem('teachingApp_currentUser');
+            
             // Clear current user
             currentUser = null;
             currentClass = null;
@@ -1522,6 +1526,12 @@
             // Stop any active scanners
             if (isScanning) {
                 stopScanner();
+            }
+            if (isAssignmentScanning) {
+                stopAssignmentScanner();
+            }
+            if (isCopybookScanning) {
+                stopCopybookScanner();
             }
             
             console.log('✅ Signed out successfully');
@@ -2224,13 +2234,26 @@
             localStorage.removeItem('teachingApp_classes');
             localStorage.removeItem('teachingApp_data');
             
+            // Check for existing Google session first
+            checkExistingGoogleSession();
+            
             // Initialize Google Sign-In
             if (typeof google !== 'undefined' && google.accounts) {
                 google.accounts.id.initialize({
                     client_id: "830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com",
-                    callback: handleCredentialResponse
+                    callback: handleCredentialResponse,
+                    auto_select: true, // Auto-select if user previously signed in
+                    cancel_on_tap_outside: false
                 });
-                console.log('✅ Google Sign-In initialized');
+                
+                // Try to prompt for sign-in if not already signed in
+                google.accounts.id.prompt((notification) => {
+                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+                        console.log('Google Sign-In prompt not shown');
+                    }
+                });
+                
+                console.log('✅ Google Sign-In initialized with auto-select');
             } else {
                 console.log('⚠️ Google Sign-In not loaded yet, will retry...');
                 // Retry after a short delay
@@ -2238,7 +2261,8 @@
                     if (typeof google !== 'undefined' && google.accounts) {
                         google.accounts.id.initialize({
                             client_id: "830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com",
-                            callback: handleCredentialResponse
+                            callback: handleCredentialResponse,
+                            auto_select: true
                         });
                         console.log('✅ Google Sign-In initialized (delayed)');
                     }
@@ -2248,6 +2272,43 @@
             updateCurrentDate();
             console.log('✅ Ready to use with Google Sign-In!');
         });
+
+        function checkExistingGoogleSession() {
+            // Check if user was previously logged in
+            const savedUser = localStorage.getItem('teachingApp_currentUser');
+            if (savedUser) {
+                try {
+                    const userData = JSON.parse(savedUser);
+                    console.log('🔄 Found existing user session:', userData.name);
+                    
+                    // Restore user session
+                    currentUser = userData;
+                    
+                    // Auto-login
+                    document.getElementById('loginScreen').style.display = 'none';
+                    document.getElementById('mainApp').style.display = 'block';
+                    document.getElementById('teacherName').textContent = currentUser.name;
+                    
+                    // Load user's data
+                    loadUserData();
+                    
+                    console.log('✅ Auto-logged in:', currentUser.name);
+                    
+                    // Show welcome back message
+                    setTimeout(() => {
+                        const classCount = Object.keys(classes).length;
+                        const welcomeMsg = classCount > 0 
+                            ? `Welcome back ${currentUser.name}! You have ${classCount} class${classCount > 1 ? 'es' : ''} ready.`
+                            : `Welcome back ${currentUser.name}! Start by creating your first class.`;
+                        alert(welcomeMsg);
+                    }, 1000);
+                    
+                } catch (e) {
+                    console.error('❌ Error loading saved session:', e);
+                    localStorage.removeItem('teachingApp_currentUser');
+                }
+            }
+        }
     </script>
 </body>
 </html>
