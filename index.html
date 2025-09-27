@@ -6,6 +6,47 @@
     <title>Happy Teaching with Khalid</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script type="module">
+        // Import Firebase modules
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getFirestore, collection, doc, setDoc, getDoc, getDocs, updateDoc, deleteDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCOz20KMhaT0HlhEPt8rG8IiV_XHD4vgIQ",
+            authDomain: "attendance-85d3b.firebaseapp.com",
+            projectId: "attendance-85d3b",
+            storageBucket: "attendance-85d3b.firebasestorage.app",
+            messagingSenderId: "520604140935",
+            appId: "1:520604140935:web:b5fb5e9ea2a58eb97b3f22"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
+
+        // Make Firebase functions globally available
+        window.firebaseApp = app;
+        window.firebaseDb = db;
+        window.firebaseAuth = auth;
+        window.firebaseProvider = provider;
+        window.firebaseSignInWithPopup = signInWithPopup;
+        window.firebaseSignOut = signOut;
+        window.onAuthStateChanged = onAuthStateChanged;
+        window.firestoreDoc = doc;
+        window.firestoreSetDoc = setDoc;
+        window.firestoreGetDoc = getDoc;
+        window.firestoreGetDocs = getDocs;
+        window.firestoreUpdateDoc = updateDoc;
+        window.firestoreDeleteDoc = deleteDoc;
+        window.firestoreCollection = collection;
+        window.firestoreOnSnapshot = onSnapshot;
+
+        console.log('✅ Firebase initialized successfully');
+    </script>
     <meta name="google-signin-client_id" content="830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com">
     <style>
         * {
@@ -637,10 +678,17 @@
                      data-size="large"
                      data-logo_alignment="left">
                 </div>
+
+                <!-- Alternative Firebase Google Sign-In Button -->
+                <div style="margin-top: 20px;">
+                    <button onclick="signInWithFirebase()" style="background: linear-gradient(135deg, #4285f4 0%, #34a853 100%); color: white; border: none; padding: 15px 30px; border-radius: 50px; font-size: 1.1rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin: 0 auto;">
+                        🔥 Sign in with Firebase Google
+                    </button>
+                </div>
                 
                 <div class="login-hint" style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 10px; font-size: 0.9rem; color: rgba(102, 126, 234, 0.8); border: 1px solid rgba(102, 126, 234, 0.2); backdrop-filter: blur(10px);">
-                    🔐 <strong>Secure Google Sign-In</strong><br>
-                    <small>Use your Google account to access the teaching dashboard</small>
+                    🔐 <strong>Secure Firebase Authentication</strong><br>
+                    <small>Your data is now stored in Firebase cloud database</small>
                 </div>
             </div>
         </div>
@@ -1102,48 +1150,120 @@
             }
         }
 
-        // Load user data with persistence
-        function loadUserData() {
-            console.log('📚 Loading user data for:', currentUser.email);
-            
-            // Load user's data from localStorage
-            const userDataKey = 'teachingApp_' + currentUser.email.replace(/[^a-zA-Z0-9]/g, '_');
-            const savedData = localStorage.getItem(userDataKey);
-            
-            if (savedData) {
-                try {
-                    const parsedData = JSON.parse(savedData);
-                    classes = parsedData.classes || {};
-                    console.log('✅ Loaded existing data:', Object.keys(classes).length, 'classes');
-                } catch (e) {
-                    console.error('❌ Error loading saved data:', e);
-                    classes = {};
-                }
-            } else {
-                console.log('🆕 No existing data - starting fresh');
-                classes = {};
+        // Firebase Authentication Functions
+        async function signInWithFirebase() {
+            try {
+                console.log('🔥 Starting Firebase Google Sign-In...');
+                const result = await window.firebaseSignInWithPopup(window.firebaseAuth, window.firebaseProvider);
+                const user = result.user;
+                
+                console.log('✅ Firebase sign-in successful:', user.displayName);
+                await handleFirebaseUser(user);
+            } catch (error) {
+                console.error('❌ Firebase sign-in error:', error);
+                alert('Sign-in failed: ' + error.message);
             }
-            
-            // Reset current session data
-            students = [];
-            attendanceLog = [];
-            todaysAttendance = {};
-            currentClass = null;
-            
-            updateClassSelect();
         }
 
-        // Save user data to localStorage
-        function saveUserData() {
-            if (currentUser && currentUser.email) {
-                const userDataKey = 'teachingApp_' + currentUser.email.replace(/[^a-zA-Z0-9]/g, '_');
+        async function handleFirebaseUser(user) {
+            // Set current user from Firebase data
+            currentUser = {
+                name: user.displayName,
+                email: user.email,
+                picture: user.photoURL,
+                uid: user.uid
+            };
+            
+            console.log('👤 Firebase user authenticated:', currentUser.name);
+            
+            // Hide login screen and show main app
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            document.getElementById('teacherName').textContent = currentUser.name;
+            
+            // Load user's data from Firebase
+            await loadUserDataFromFirebase();
+            
+            // Show welcome message
+            setTimeout(() => {
+                const classCount = Object.keys(classes).length;
+                const welcomeMsg = classCount > 0 
+                    ? `Welcome back ${currentUser.name}! You have ${classCount} class${classCount > 1 ? 'es' : ''} ready to use.`
+                    : `Welcome ${currentUser.name}! Start by creating your first class.`;
+                alert(welcomeMsg);
+            }, 500);
+        }
+
+        // Firebase Data Functions
+        async function loadUserDataFromFirebase() {
+            try {
+                console.log('📚 Loading user data from Firebase...');
+                
+                // Get user's classes from Firebase
+                const userDocRef = window.firestoreDoc(window.firebaseDb, 'users', currentUser.uid);
+                const userDoc = await window.firestoreGetDoc(userDocRef);
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    classes = userData.classes || {};
+                    console.log('✅ Loaded', Object.keys(classes).length, 'classes from Firebase');
+                } else {
+                    console.log('🆕 New user - starting with empty data');
+                    classes = {};
+                }
+                
+                // Reset current session data
+                students = [];
+                attendanceLog = [];
+                todaysAttendance = {};
+                assignmentHistory = [];
+                copybookHistory = [];
+                currentClass = null;
+                
+                updateClassSelect();
+            } catch (error) {
+                console.error('❌ Error loading data from Firebase:', error);
+                alert('Error loading data: ' + error.message);
+                classes = {};
+            }
+        }
+
+        async function saveUserDataToFirebase() {
+            if (!currentUser || !currentUser.uid) {
+                console.log('⚠️ No user logged in - cannot save to Firebase');
+                return;
+            }
+
+            try {
+                console.log('💾 Saving user data to Firebase...');
+                
+                const userDocRef = window.firestoreDoc(window.firebaseDb, 'users', currentUser.uid);
                 const dataToSave = {
                     classes: classes,
-                    lastUpdate: new Date().toISOString()
+                    lastUpdate: new Date().toISOString(),
+                    userInfo: {
+                        name: currentUser.name,
+                        email: currentUser.email
+                    }
                 };
-                localStorage.setItem(userDataKey, JSON.stringify(dataToSave));
-                console.log('💾 Data saved for user:', currentUser.email);
+                
+                await window.firestoreSetDoc(userDocRef, dataToSave, { merge: true });
+                console.log('✅ Data saved to Firebase successfully');
+            } catch (error) {
+                console.error('❌ Error saving to Firebase:', error);
+                alert('Error saving data: ' + error.message);
             }
+        }
+
+        // Legacy localStorage functions (kept for backward compatibility)
+        function loadUserData() {
+            // This function is now handled by loadUserDataFromFirebase
+            console.log('📚 Using Firebase for data loading...');
+        }
+
+        function saveUserData() {
+            // This function now calls Firebase save
+            saveUserDataToFirebase();
         }
 
         function updateClassSelect() {
@@ -1431,7 +1551,9 @@
                 subject: subject,
                 students: [],
                 attendance: {},
-                log: []
+                log: [],
+                assignmentHistory: [],
+                copybookHistory: []
             };
 
             nameInput.value = '';
@@ -1440,11 +1562,11 @@
             const addClassForm = document.getElementById('addClassForm');
             if (addClassForm) addClassForm.classList.add('hidden');
 
-            // Save data immediately
-            saveUserData();
+            // Save data to Firebase
+            saveUserDataToFirebase();
 
             updateClassSelect();
-            alert('Class "' + name + '" created successfully! 🎉');
+            alert('Class "' + name + '" created successfully!');
         }
 
         function addStudent() {
@@ -1480,7 +1602,7 @@
             // Update the class data
             if (currentClass) {
                 classes[currentClass].students = students;
-                saveUserData(); // Save immediately
+                saveUserDataToFirebase(); // Save to Firebase
             }
             
             nameInput.value = '';
@@ -1491,6 +1613,7 @@
             renderStudentsTable();
             renderTodaysAttendance();
             renderAssignmentTable();
+            renderCopybookTable();
         }
 
         function switchTab(tabName) {
