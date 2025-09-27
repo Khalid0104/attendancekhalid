@@ -1300,177 +1300,6 @@
             renderStudentsTable();
             renderTodaysAttendance();
             renderAttendanceLog();
-            renderAssignmentTable();
-            renderCopybookTable();
-            renderAssignmentHistory();
-            renderCopybookHistory();
-        }
-
-        function updateStats() {
-            if (!currentClass) return;
-            
-            const totalStudents = students.length;
-            const presentToday = Object.keys(todaysAttendance).length;
-            const totalStars = students.reduce((sum, student) => sum + (student.stars || 0), 0);
-            const totalXMarks = students.reduce((sum, student) => sum + (student.xMarks || 0), 0);
-
-            document.getElementById('totalStudents').textContent = totalStudents;
-            document.getElementById('presentToday').textContent = presentToday;
-            document.getElementById('totalStars').textContent = totalStars;
-            document.getElementById('totalXMarks').textContent = totalXMarks;
-        }
-
-        function renderStudentsTable() {
-            if (!students.length) return;
-            
-            const tbody = document.getElementById('studentsTable');
-            if (!tbody) return;
-            
-            console.log('Rendering students table with star format'); // Debug log
-            
-            tbody.innerHTML = students.map(student => `
-                <tr>
-                    <td>${student.id}</td>
-                    <td>${student.name}</td>
-                    <td><span style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">⭐ (${student.stars || 0})</span></td>
-                    <td><span style="color: #e74c3c; font-weight: bold;">❌ (${student.xMarks || 0})</span></td>
-                    <td>
-                        <button class="present-btn" onclick="markAttendance(${student.id}, 'Manual')" ${todaysAttendance[student.id] ? 'disabled' : ''}>
-                            ${todaysAttendance[student.id] ? 'Present ✓' : 'Present'}
-                        </button>
-                        <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐</button>
-                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderTodaysAttendance() {
-            if (!students.length) return;
-            
-            const tbody = document.getElementById('attendanceTable');
-            if (!tbody) return;
-            
-            tbody.innerHTML = students.map(student => {
-                const attendance = todaysAttendance[student.id];
-                const status = attendance ? 'Present ✅' : 'Absent ❌';
-                const time = attendance ? attendance.time : '-';
-                
-                return `
-                    <tr style="${attendance ? 'background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(69, 160, 73, 0.05));' : ''}">
-                        <td>${student.id}</td>
-                        <td>${student.name}</td>
-                        <td>${status}</td>
-                        <td>${time}</td>
-                        <td>
-                            <button class="present-btn" onclick="markAttendance(${student.id}, 'Manual')" ${attendance ? 'disabled' : ''}>
-                                ${attendance ? 'Present ✓' : 'Mark Present'}
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderAssignmentTable() {
-            if (!students.length) return;
-            
-            const tbody = document.getElementById('assignmentTable');
-            if (!tbody) return;
-            
-            tbody.innerHTML = students.map(student => {
-                const isScanned = currentAssignmentData && currentAssignmentData.scannedStudents.has(student.id);
-                const status = isScanned ? 'Completed ✅' : 'Pending ⏳';
-                const time = isScanned ? new Date().toLocaleTimeString() : '-';
-                
-                return `
-                    <tr style="${isScanned ? 'background: linear-gradient(135deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.05));' : ''}">
-                        <td>${student.name}</td>
-                        <td>${status}</td>
-                        <td>${time}</td>
-                        <td>
-                            <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐ Star</button>
-                            <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌ X Mark</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderCopybookTable() {
-            if (!students.length) return;
-            
-            const tbody = document.getElementById('copybookTable');
-            if (!tbody) return;
-            
-            tbody.innerHTML = students.map(student => {
-                const isScanned = currentCopybookData && currentCopybookData.scannedStudents.has(student.id);
-                const status = isScanned ? 'Brought ✅' : 'Missing ⏳';
-                const time = isScanned ? new Date().toLocaleTimeString() : '-';
-                
-                return `
-                    <tr style="${isScanned ? 'background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(233, 30, 99, 0.05));' : ''}">
-                        <td>${student.name}</td>
-                        <td>${status}</td>
-                        <td>${time}</td>
-                        <td>
-                            <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐ Star</button>
-                            <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌ X Mark</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
-        }
-
-        function renderAttendanceLog() {
-            const tbody = document.getElementById('logTable');
-            if (!tbody) return;
-            
-            tbody.innerHTML = attendanceLog.slice(0, 50).map(entry => `
-                <tr>
-                    <td>${entry.date}</td>
-                    <td>${entry.time}</td>
-                    <td>${entry.student}</td>
-                    <td><span style="padding: 4px 8px; background: #e8f5e8; border-radius: 12px; font-size: 0.9rem;">${entry.type}</span></td>
-                    <td><span style="padding: 4px 8px; background: #fff3e0; border-radius: 12px; font-size: 0.9rem;">${entry.method}</span></td>
-                    <td>${entry.details || '-'}</td>
-                </tr>
-            `).join('');
-        }
-
-        function markAttendance(studentId, method) {
-            const student = students.find(s => s.id === studentId);
-            if (!student) return;
-            
-            const today = new Date().toDateString();
-            const time = new Date().toLocaleTimeString();
-
-            if (todaysAttendance[student.id]) {
-                alert(student.name + ' is already marked present today!');
-                return;
-            }
-
-            todaysAttendance[student.id] = {
-                time: time,
-                method: method || 'Manual'
-            };
-
-            // Save to class data
-            if (!classes[currentClass].attendance[today]) {
-                classes[currentClass].attendance[today] = {};
-            }
-            classes[currentClass].attendance[today] = todaysAttendance;
-
-            // Add attendance star
-            student.stars = (student.stars || 0) + 1;
-
-            addToLog(student.name, 'Attendance', method || 'Manual', 'Present (+1 star)');
-
-            alert('✅ ' + student.name + ' marked present! (+1 star)');
-            updateStats();
-            renderStudentsTable();
-            renderTodaysAttendance();
-            renderAttendanceLog();
         }
 
         function addManualStar(studentId) {
@@ -1802,13 +1631,30 @@
                 `Are you sure you want to clear all of today's data?\n\n` +
                 `This will remove:\n` +
                 `• All attendance records for today\n` +
-                `• Today's activity log entries\n\n` +
+                `• Today's activity log entries\n` +
+                `• Stars earned today (from attendance & activities)\n\n` +
                 `This action cannot be undone!`
             );
 
             if (!confirmClear) return;
 
             const today = new Date().toDateString();
+
+            // Get today's log entries to calculate stars to remove
+            const todaysLogEntries = attendanceLog.filter(entry => entry.date === today);
+            
+            // Calculate and remove stars that were added today
+            todaysLogEntries.forEach(entry => {
+                const student = students.find(s => s.name === entry.student);
+                if (student && entry.details) {
+                    // Check if the log entry mentions star additions
+                    if (entry.details.includes('+1 star') || entry.details.includes('(+1 star)')) {
+                        student.stars = Math.max(0, (student.stars || 0) - 1);
+                    } else if (entry.details.includes('+2 stars') || entry.details.includes('(+2 stars)')) {
+                        student.stars = Math.max(0, (student.stars || 0) - 2);
+                    }
+                }
+            });
 
             // Clear today's attendance
             todaysAttendance = {};
@@ -1820,6 +1666,9 @@
             attendanceLog = attendanceLog.filter(entry => entry.date !== today);
             classes[currentClass].log = attendanceLog;
 
+            // Update class data with modified students
+            classes[currentClass].students = students;
+
             // Save the updated data
             saveUserData();
 
@@ -1829,7 +1678,7 @@
             renderTodaysAttendance();
             renderAttendanceLog();
 
-            alert('Today\'s data has been cleared successfully! 🗑️');
+            alert('Today\'s data has been cleared successfully! 🗑️\n\nAttendance records, activity logs, and today\'s stars have been removed.');
         }
 
         function updateCurrentDate() {
@@ -1929,7 +1778,7 @@
         }
 
         function onScanSuccess(decodedText, decodedResult) {
-            console.log('🎯 QR Code scanned:', decodedText);
+            console.log('QR Code scanned:', decodedText);
             
             // Look for student by ID or name
             const student = students.find(s => 
@@ -1938,7 +1787,36 @@
             );
 
             if (student) {
-                console.log('✅ Student found:', student.name);
+                console.log('Student found:', student.name);
+                
+                // Check if already present today
+                if (todaysAttendance[student.id]) {
+                    const scanResult = document.getElementById('scanResult');
+                    scanResult.innerHTML = `
+                        <div style="background: rgba(255, 152, 0, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #ff9800;">
+                            <p style="color: #ff9800; font-weight: 600; text-align: center;">
+                                ⚠️ <strong>${student.name} is already present today!</strong><br>
+                                <small>Already marked at ${todaysAttendance[student.id].time}</small>
+                            </p>
+                        </div>
+                    `;
+                    
+                    // Clear message after 2 seconds and continue scanning
+                    setTimeout(() => {
+                        const scanResult = document.getElementById('scanResult');
+                        if (scanResult) {
+                            scanResult.innerHTML = `
+                                <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                                    <p style="color: #11998e; font-weight: 600; text-align: center;">
+                                        📱 <strong>Scanner Active!</strong><br>
+                                        <small>Point camera at student QR code</small>
+                                    </p>
+                                </div>
+                            `;
+                        }
+                    }, 2000);
+                    return; // Don't stop scanning, just continue
+                }
                 
                 // Show scan result
                 const scanResult = document.getElementById('scanResult');
@@ -1955,11 +1833,37 @@
                 // Mark attendance after a short delay to show the result
                 setTimeout(() => {
                     markAttendance(student.id, 'QR Scan');
-                    stopScanner();
+                    
+                    // Show success and continue scanning
+                    const scanResult = document.getElementById('scanResult');
+                    if (scanResult) {
+                        scanResult.innerHTML = `
+                            <div style="background: rgba(76, 175, 80, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px; border: 2px solid #4CAF50;">
+                                <p style="color: #4CAF50; font-weight: 600; text-align: center;">
+                                    ✅ <strong>${student.name} marked present!</strong><br>
+                                    <small>Scanner ready for next student...</small>
+                                </p>
+                            </div>
+                        `;
+                        
+                        // Clear message after 2 seconds and show scanning message
+                        setTimeout(() => {
+                            if (isScanning) {
+                                scanResult.innerHTML = `
+                                    <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                                        <p style="color: #11998e; font-weight: 600; text-align: center;">
+                                            📱 <strong>Scanner Active!</strong><br>
+                                            <small>Point camera at student QR code</small>
+                                        </p>
+                                    </div>
+                                `;
+                            }
+                        }, 2000);
+                    }
                 }, 1000);
                 
             } else {
-                console.log('❌ Student not found for:', decodedText);
+                console.log('Student not found for:', decodedText);
                 
                 // Show not found result
                 const scanResult = document.getElementById('scanResult');
@@ -1970,25 +1874,23 @@
                             📱 Scanned: "${decodedText}"<br>
                             <small>Make sure the QR code contains the student's ID or exact name</small>
                         </p>
-                        <div style="margin-top: 10px; font-size: 0.9rem; color: #666;">
-                            <strong>Available students:</strong><br>
-                            ${students.map(s => `• ${s.name} (ID: ${s.id})`).join('<br>')}
-                        </div>
                     </div>
                 `;
                 
-                // Clear message after 4 seconds and continue scanning
+                // Clear message after 3 seconds and continue scanning
                 setTimeout(() => {
                     const scanResult = document.getElementById('scanResult');
-                    scanResult.innerHTML = `
-                        <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
-                            <p style="color: #11998e; font-weight: 600; text-align: center;">
-                                📱 <strong>Scanner Active!</strong><br>
-                                <small>Point camera at student QR code</small>
-                            </p>
-                        </div>
-                    `;
-                }, 4000);
+                    if (scanResult && isScanning) {
+                        scanResult.innerHTML = `
+                            <div style="background: rgba(17, 153, 142, 0.1); padding: 15px; border-radius: 10px; margin-top: 15px;">
+                                <p style="color: #11998e; font-weight: 600; text-align: center;">
+                                    📱 <strong>Scanner Active!</strong><br>
+                                    <small>Point camera at student QR code</small>
+                                </p>
+                            </div>
+                        `;
+                    }
+                }, 3000);
             }
         }
 
@@ -2520,89 +2422,211 @@
             }
         }
 
+        function renderAssignmentHistory() {
+            // Placeholder function for assignment history
+        }
+
+        function renderCopybookHistory() {
+            // Placeholder function for copybook history
+        }
+
         // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 App loaded successfully!');
+            console.log('App loaded successfully!');
             
             // Clear any cached data to ensure fresh start
             localStorage.removeItem('teachingApp_classes');
             localStorage.removeItem('teachingApp_data');
             
-            // Check for existing Google session first
+            // Check for existing Firebase session first
             checkExistingGoogleSession();
             
-            // Initialize Google Sign-In
-            if (typeof google !== 'undefined' && google.accounts) {
-                google.accounts.id.initialize({
-                    client_id: "830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com",
-                    callback: handleCredentialResponse,
-                    auto_select: true, // Auto-select if user previously signed in
-                    cancel_on_tap_outside: false
-                });
-                
-                // Try to prompt for sign-in if not already signed in
-                google.accounts.id.prompt((notification) => {
-                    if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-                        console.log('Google Sign-In prompt not shown');
-                    }
-                });
-                
-                console.log('✅ Google Sign-In initialized with auto-select');
-            } else {
-                console.log('⚠️ Google Sign-In not loaded yet, will retry...');
-                // Retry after a short delay
-                setTimeout(() => {
-                    if (typeof google !== 'undefined' && google.accounts) {
-                        google.accounts.id.initialize({
-                            client_id: "830650129961-cqr3kkc3q1hur08da3bfso8i9an9aclm.apps.googleusercontent.com",
-                            callback: handleCredentialResponse,
-                            auto_select: true
-                        });
-                        console.log('✅ Google Sign-In initialized (delayed)');
-                    }
-                }, 1000);
-            }
-            
             updateCurrentDate();
-            console.log('✅ Ready to use with Google Sign-In!');
+            console.log('Ready to use with Google Sign-In!');
         });
 
         function checkExistingGoogleSession() {
-            // Check if user was previously logged in
-            const savedUser = localStorage.getItem('teachingApp_currentUser');
-            if (savedUser) {
-                try {
-                    const userData = JSON.parse(savedUser);
-                    console.log('🔄 Found existing user session:', userData.name);
-                    
-                    // Restore user session
-                    currentUser = userData;
-                    
-                    // Auto-login
-                    document.getElementById('loginScreen').style.display = 'none';
-                    document.getElementById('mainApp').style.display = 'block';
-                    document.getElementById('teacherName').textContent = currentUser.name;
-                    
-                    // Load user's data
-                    loadUserData();
-                    
-                    console.log('✅ Auto-logged in:', currentUser.name);
-                    
-                    // Show welcome back message
-                    setTimeout(() => {
-                        const classCount = Object.keys(classes).length;
-                        const welcomeMsg = classCount > 0 
-                            ? `Welcome back ${currentUser.name}! You have ${classCount} class${classCount > 1 ? 'es' : ''} ready.`
-                            : `Welcome back ${currentUser.name}! Start by creating your first class.`;
-                        alert(welcomeMsg);
-                    }, 1000);
-                    
-                } catch (e) {
-                    console.error('❌ Error loading saved session:', e);
-                    localStorage.removeItem('teachingApp_currentUser');
+            // Check if user was previously logged in - use Firebase auth state
+            window.onAuthStateChanged(window.firebaseAuth, async (user) => {
+                if (user) {
+                    console.log('🔄 Found existing Firebase user session:', user.displayName);
+                    await handleFirebaseUser(user);
+                } else {
+                    console.log('📭 No existing Firebase session found');
                 }
-            }
+            });
         }
     </script>
 </body>
 </html>
+            renderTodaysAttendance();
+            renderAttendanceLog();
+            renderAssignmentTable();
+            renderCopybookTable();
+            renderAssignmentHistory();
+            renderCopybookHistory();
+        }
+
+        function updateStats() {
+            if (!currentClass) return;
+            
+            const totalStudents = students.length;
+            const presentToday = Object.keys(todaysAttendance).length;
+            const totalStars = students.reduce((sum, student) => sum + (student.stars || 0), 0);
+            const totalXMarks = students.reduce((sum, student) => sum + (student.xMarks || 0), 0);
+
+            document.getElementById('totalStudents').textContent = totalStudents;
+            document.getElementById('presentToday').textContent = presentToday;
+            document.getElementById('totalStars').textContent = totalStars;
+            document.getElementById('totalXMarks').textContent = totalXMarks;
+        }
+
+        function renderStudentsTable() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('studentsTable');
+            if (!tbody) return;
+            
+            console.log('Rendering students table with star format'); // Debug log
+            
+            tbody.innerHTML = students.map(student => `
+                <tr>
+                    <td>${student.id}</td>
+                    <td>${student.name}</td>
+                    <td><span style="color: #ffd700; font-size: 1.2rem; font-weight: bold;">⭐ (${student.stars || 0})</span></td>
+                    <td><span style="color: #e74c3c; font-weight: bold;">❌ (${student.xMarks || 0})</span></td>
+                    <td>
+                        <button class="present-btn" onclick="markAttendance(${student.id}, 'Manual')" ${todaysAttendance[student.id] ? 'disabled' : ''}>
+                            ${todaysAttendance[student.id] ? 'Present ✓' : 'Present'}
+                        </button>
+                        <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐</button>
+                        <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderTodaysAttendance() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('attendanceTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = students.map(student => {
+                const attendance = todaysAttendance[student.id];
+                const status = attendance ? 'Present ✅' : 'Absent ❌';
+                const time = attendance ? attendance.time : '-';
+                
+                return `
+                    <tr style="${attendance ? 'background: linear-gradient(135deg, rgba(76, 175, 80, 0.1), rgba(69, 160, 73, 0.05));' : ''}">
+                        <td>${student.id}</td>
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="present-btn" onclick="markAttendance(${student.id}, 'Manual')" ${attendance ? 'disabled' : ''}>
+                                ${attendance ? 'Present ✓' : 'Mark Present'}
+                            </button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderAssignmentTable() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('assignmentTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = students.map(student => {
+                const isScanned = currentAssignmentData && currentAssignmentData.scannedStudents.has(student.id);
+                const status = isScanned ? 'Completed ✅' : 'Pending ⏳';
+                const time = isScanned ? new Date().toLocaleTimeString() : '-';
+                
+                return `
+                    <tr style="${isScanned ? 'background: linear-gradient(135deg, rgba(17, 153, 142, 0.1), rgba(56, 239, 125, 0.05));' : ''}">
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐ Star</button>
+                            <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌ X Mark</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderCopybookTable() {
+            if (!students.length) return;
+            
+            const tbody = document.getElementById('copybookTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = students.map(student => {
+                const isScanned = currentCopybookData && currentCopybookData.scannedStudents.has(student.id);
+                const status = isScanned ? 'Brought ✅' : 'Missing ⏳';
+                const time = isScanned ? new Date().toLocaleTimeString() : '-';
+                
+                return `
+                    <tr style="${isScanned ? 'background: linear-gradient(135deg, rgba(156, 39, 176, 0.1), rgba(233, 30, 99, 0.05));' : ''}">
+                        <td>${student.name}</td>
+                        <td>${status}</td>
+                        <td>${time}</td>
+                        <td>
+                            <button class="manual-btn" onclick="addManualStar(${student.id})">+⭐ Star</button>
+                            <button class="manual-btn x-btn" onclick="addManualX(${student.id})">+❌ X Mark</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderAttendanceLog() {
+            const tbody = document.getElementById('logTable');
+            if (!tbody) return;
+            
+            tbody.innerHTML = attendanceLog.slice(0, 50).map(entry => `
+                <tr>
+                    <td>${entry.date}</td>
+                    <td>${entry.time}</td>
+                    <td>${entry.student}</td>
+                    <td><span style="padding: 4px 8px; background: #e8f5e8; border-radius: 12px; font-size: 0.9rem;">${entry.type}</span></td>
+                    <td><span style="padding: 4px 8px; background: #fff3e0; border-radius: 12px; font-size: 0.9rem;">${entry.method}</span></td>
+                    <td>${entry.details || '-'}</td>
+                </tr>
+            `).join('');
+        }
+
+        function markAttendance(studentId, method) {
+            const student = students.find(s => s.id === studentId);
+            if (!student) return;
+            
+            const today = new Date().toDateString();
+            const time = new Date().toLocaleTimeString();
+
+            if (todaysAttendance[student.id]) {
+                alert(student.name + ' is already marked present today!');
+                return;
+            }
+
+            todaysAttendance[student.id] = {
+                time: time,
+                method: method || 'Manual'
+            };
+
+            // Save to class data
+            if (!classes[currentClass].attendance[today]) {
+                classes[currentClass].attendance[today] = {};
+            }
+            classes[currentClass].attendance[today] = todaysAttendance;
+
+            // Add attendance star
+            student.stars = (student.stars || 0) + 1;
+
+            addToLog(student.name, 'Attendance', method || 'Manual', 'Present (+1 star)');
+
+            alert('✅ ' + student.name + ' marked present! (+1 star)');
+            updateStats();
+            renderStudentsTable();
