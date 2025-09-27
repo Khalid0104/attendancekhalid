@@ -768,11 +768,11 @@
                 <div class="form-grid">
                     <div class="form-group">
                         <label for="assignmentName">Assignment Name</label>
-                        <input type="text" id="assignmentName" placeholder="e.g., Math Exercise 5.2">
+                        <input type="text" id="assignmentName" placeholder="e.g., English lessons Chapter 3">
                     </div>
                     <div class="form-group">
                         <label>&nbsp;</label>
-                        <button id="assignmentScanBtn" class="scan-button" onclick="startAssignmentScanner()">
+                        <button id="assignmentScanBtn" class="add-button" onclick="startAssignmentScanner()" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                             Start Assignment Scanner
                         </button>
                     </div>
@@ -823,7 +823,7 @@
                     </div>
                     <div class="form-group">
                         <label>&nbsp;</label>
-                        <button id="copybookScanBtn" class="scan-button" onclick="startCopybookScanner()">
+                        <button id="copybookScanBtn" class="add-button" onclick="startCopybookScanner()" style="background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);">
                             Start Copybook Scanner
                         </button>
                     </div>
@@ -1432,12 +1432,23 @@
                 targetTab.classList.remove('hidden');
             }
             
-            // Find and activate the clicked tab
-            tabButtons.forEach(tab => {
-                if (tab.textContent.toLowerCase().includes(tabName.toLowerCase())) {
-                    tab.classList.add('active');
-                }
-            });
+            // Find and activate the clicked tab button
+            if (event && event.target) {
+                event.target.classList.add('active');
+            } else {
+                // Fallback: find the tab by content matching
+                tabButtons.forEach(tab => {
+                    const tabText = tab.textContent.toLowerCase();
+                    if ((tabName === 'scanner' && tabText.includes('attendance')) ||
+                        (tabName === 'students' && tabText.includes('students')) ||
+                        (tabName === 'assignments' && tabText.includes('assignments')) ||
+                        (tabName === 'copybook' && tabText.includes('copybook')) ||
+                        (tabName === 'attendance' && tabText.includes('log')) ||
+                        (tabName === 'log' && tabText.includes('history'))) {
+                        tab.classList.add('active');
+                    }
+                });
+            }
 
             // Stop scanners if switching away from scanner tabs
             if (tabName !== 'scanner' && isScanning) {
